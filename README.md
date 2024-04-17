@@ -1,14 +1,14 @@
 #### Map Dashboard Visualization of Electric Vehicle Charging Stations Project
 
-The datasets used in this project must be plased in the `data` folder.  Sources of the datasets are:  
+The datasets used in this project must be placed in the `data` folder. Sources of the datasets are:  
 `https://www.data.gouv.fr/fr/datasets/fichier-consolide-des-bornes-de-recharge-pour-vehicules-electriques/` - the link to the data source from `data.gouv.fr` website for electric vehicle charging stations in France.  
 
 
 OTHER RESOURCES:  
 
-`https://data.opendatasoft.com/pages/home/` the link to the data source from `opendasoft` website.  
-`https://geoservices.ign.fr/telechargement-api` the link to the data source from `IGN` website.  
-`https://docs.streamlit.io/` the link to the `streamlit` documentation.  
+`https://data.opendatasoft.com/pages/home/` - the link to the data source from `opendatasoft` website.  
+`https://geoservices.ign.fr/telechargement-api` - the link to the data source from `IGN` website.  
+`https://docs.streamlit.io/` - the link to the `streamlit` documentation.  
 
 #### Before running the streamlit app, the following steps must be taken
 
