@@ -1,0 +1,2 @@
+dataset shall be placed in this directory, must be downloaded from the following link: 
+https://www.data.gouv.fr/fr/datasets/fichier-consolide-des-bornes-de-recharge-pour-vehicules-electriques/
