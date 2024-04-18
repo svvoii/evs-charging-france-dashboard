@@ -16,8 +16,8 @@ OTHER RESOURCES:
 
 ##### Preparing the virtual environment
 Run these commands in the root directory of this project before running the streamlit app:  
-`python -m venv venv` - to create a virtual environment  
-`source venv/bin/activate` - to activate the virtual environment  
+`python -m venv .venv` - to create a virtual environment  
+`source .venv/bin/activate` - to activate the virtual environment  
 `python -m pip install pandas` - to install pandas  
 `python -m pip install python-dotenv` - to install python-dotenv (for loading Google API key as an environment variable)  
 `python -m pip install tqdm` - to install tqdm which is a progress bar library which is used in `exract_geocode.py`. Using google API to extract missing address data in the dataset which takes time (around 25156 unique gps coordinates in the dataset, took around 45 min).   
@@ -26,7 +26,9 @@ Run these commands in the root directory of this project before running the stre
 `pip install --upgrade pip` - to upgrade pip  
 
 ##### Preprocessing the data
-In this project we filter the data by regions in France. The open-data is incomplete and some of the atributes of the addresses are missing. We use Google API to extract the missing data.  
+In this project we filter the data by regions in France. The open-data is incomplete and some of the atributes of the addresses are missing. We use Google API to extract the missing data. In `data` folder there shall be `location_data.csv` file which contains the extracted data from Google API.  
+If the file is not there proceed with the following command.    
+If the file is there, proceed skip the following command.  
 So, before running the streamlit app, we run the following:  
 `python extract_geocode.py` - to extract the address data from Google API given the gps coordinates. There will be a progress bar to show the progress of the extraction (initially it took around 45 min to receive the data via Google API).    
 We request the data only fo the missing values in `code_postal` wich are unique based on the `consolidated_longitude` and `consolidated_latitude` columns from the initial `charging_points.csv` dataset (about 25100 unique values).  

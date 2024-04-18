@@ -39,5 +39,12 @@ if __name__ == "__main__":
 	load_dotenv('data/.env')
 	API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
 	df = pd.read_csv("data/charging_points.csv", low_memory=False)
-	location_data = get_location_data(df)
-	location_data.to_csv("data/location_data.csv", index=False)
+
+	# Check if location_data.csv already exists:
+	if os.path.exists("data/location_data.csv"):
+		print("Location data already exists.")
+		location_data = pd.read_csv("data/location_data.csv")
+	else:
+		# if not, get the location data and save it to a new file
+		location_data = get_location_data(df)
+		location_data.to_csv("data/location_data.csv", index=False)
