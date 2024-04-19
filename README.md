@@ -20,8 +20,9 @@ Run these commands in the root directory of this project before running the stre
 `source .venv/bin/activate` - to activate the virtual environment  
 `python -m pip install pandas` - to install pandas  
 `python -m pip install python-dotenv` - to install python-dotenv (for loading Google API key as an environment variable)  
-`python -m pip install tqdm` - to install tqdm which is a progress bar library which is used in `exract_geocode.py`. Using google API to extract missing address data in the dataset which takes time (around 25156 unique gps coordinates in the dataset, took around 45 min).   
+`python -m pip install tqdm` - to install tqdm which is a progress bar library which is used in `exract_geocode.py`.  
 `python -m pip install streamlit` - to install streamlit  
+`python -m pip install streamlit-folium` - to install streamlit-folium which is a streamlit wrapper for folium to create interactive maps.  
 
 `pip install --upgrade pip` - to upgrade pip  
 
