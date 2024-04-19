@@ -25,15 +25,17 @@ Run these commands in the root directory of this project before running the stre
 
 `pip install --upgrade pip` - to upgrade pip  
 
-##### Preprocessing the data
+##### Preprocessing the data !!! careful with google API - it is EXPENSIVE !!!
 In this project we filter the data by regions in France. The open-data is incomplete and some of the atributes of the addresses are missing. We use Google API to extract the missing data. In `data` folder there shall be `location_data.csv` file which contains the extracted data from Google API.  
-If the file is not there proceed with the following command.    
+If the file is not there proceed with the following command (google maps API key required !!!).    
 If the file is there, proceed skip the following command.  
 So, before running the streamlit app, we run the following:  
-`python extract_geocode.py` - to extract the address data from Google API given the gps coordinates. There will be a progress bar to show the progress of the extraction (initially it took around 45 min to receive the data via Google API).    
-We request the data only fo the missing values in `code_postal` wich are unique based on the `consolidated_longitude` and `consolidated_latitude` columns from the initial `charging_points.csv` dataset (about 25100 unique values).  
+`python extract_geocode.py` - to extract the address data from Google API given the gps coordinates. There will be a progress bar to show the progress of the extraction (it took around 45 min to receive the data via Google API the first time).    
+Requested data was only fo the missing values in `code_postal` wich are unique based on the `consolidated_longitude` and `consolidated_latitude` columns from the initial open source dataset from `data.gouv.fr` [here](https://www.data.gouv.fr/fr/datasets/fichier-consolide-des-bornes-de-recharge-pour-vehicules-electriques/)  
+(there was 25154 unique values, which cost around 75EUR of free trial credit !!).  
 
 ##### Running the streamlit app
+Once the data is preprocessed, we can run the streamlit app:
 `streamlit run streamlit_app.py` - to run the streamlit app  
 ...  
 
