@@ -78,14 +78,17 @@ def display_map(charging_points, geojson_file):
 
 	return m
 
-def render_map(df, geojson_file):
-	map = folium.Map(location=[46.603354, 1.8883344], zoom_start=6, tiles='CartoDB positron')
+def render_map(df, year):
+	df = df[df['year'] == year]	
+
+	map = folium.Map(location=[46.603354, 1.8883344], zoom_start=6, tiles='CartoDB positron', scrollWheelZoom=False)
 
 	points_by_department = df['depart_code'].value_counts().reset_index()
 	points_by_department.columns = ['depart_code', 'count']
 
 	choropleth = folium.Choropleth(
 		geo_data="data/france_departments.geojson",
+		# data=df,
 		data=points_by_department,
 		columns=['depart_code', 'count'],
 		key_on='feature.properties.code',	
@@ -94,15 +97,44 @@ def render_map(df, geojson_file):
 		highlight=True,
 	)
 	choropleth.geojson.add_to(map)
+
 	choropleth.geojson.add_child(
 		folium.features.GeoJsonTooltip(['nom'], labels=False)
 	)
 
 	st_map = st_folium(map, width=800, height=600)
+
+	department_name = ''
+	if st_map['last_active_drawing']:
+		department_name = st.write(st_map['last_active_drawing']['properties']['nom'])
+	
+	return department_name
  
-	st.write(df.shape)
-	st.write(df.head())
-	st.write(df.columns)
+	# st.write(df.shape)
+	# st.write(df.head())
+	# st.write(df.columns)
+
+def display_year_filer(charging_points):
+ 
+	year_list = list(charging_points['year'].unique())
+	year_list.sort()
+	year = st.sidebar.selectbox('Select Year', year_list, len(year_list) - 1)
+	st.header(f'{year}')
+
+	# if year != "All":
+	# 	filtered_data = charging_points[charging_points['year'] == year]
+	# else:
+	# 	filtered_data = charging_points
+
+	# st.write(f"Number of points for {year}: {filtered_data.shape[0]}")
+	return year
+
+def display_department_filter(charging_points, department_name):
+	department_list = [''] + list(charging_points['depart_code'].unique())
+	# department_list.sort()
+	dp_index = department_list.index(department_name) if department_name and department_name in department_list else 0
+	department_name = st.sidebar.selectbox('Department', department_list, dp_index)
+	return department_name
 
 def main():
 	st.set_page_config(APP_TITLE)
@@ -160,40 +192,24 @@ def main():
 	# st.write(f"DEBUG: There is postal code in the location data: {has_postal_code}")
 
 	# Displaying filters and map
+	charging_points['year'] = pd.to_datetime(charging_points['date_maj']).dt.year
 
-	st.write(f"DEBUG: Displaying map with charging points data")
-	m = display_map(charging_points, "data/france_departments.geojson")
-	folium_static.folium_static(m)
+	year = 2024
+	department_name = ''
 
-	render_map(charging_points, "data/france_departments.geojson")
+	year = display_year_filer(charging_points)
+	department_name = render_map(charging_points, year)
+	department_name = display_department_filter(charging_points, department_name)
+
+	# st.write(f"DEBUG: Displaying map with charging points data")
+	# m = display_map(charging_points, "data/france_departments.geojson")
+	# folium_static.folium_static(m)
+
  
+	# Will show the unique values of the given column
+	# st.write(charging_points['date_maj'].unique())
 	# Displaying data tables and metrics
  
 
 if __name__ == "__main__":
     main()
-
-
-# def check_postal_code(location_data):
-# 	for index, row in location_data.iterrows():
-# 		location_dict = ast.literal_eval(row['location_data'])
-# 		if 'address_components' in location_dict:
-# 			for component in location_dict['address_components']:
-# 				if 'postal_code' in component['types']:
-# 					return True
-# 	return False
-
-	# DEBUG # Adding new column for postal code by extracting / parsing it from the address string in `adresse_station`..
-	# charging_points["code_postal_extracted"] = charging_points["adresse_station"].str.extract(r"(\d{5})")
-	# charging_points['adresse_station'].to_excel('data/adresse_station.xlsx', index=False)
-	# charging_points['adresse_station'].to_csv('data/adresse_station.csv', index=False)
-	# if os.path.exists('data/missing_code_postal_adresse.csv'):
-	# 	charging_points_missing_code_postal = pd.read_csv('data/missing_code_postal_adresse.csv')
-	# else:
-	# 	charging_points_missing_code_postal = charging_points[charging_points["code_postal_extracted"].isna()]["adresse_station"]
-	# 	charging_points_missing_code_postal.to_csv('data/missing_code_postal_adresse.csv', index=False)
-	# uniques_values_missing_code = charging_points_missing_code_postal['adresse_station'].unique()
-	# st.write(f"UNIQUE values of missing code postal in [adresse_station], total: {len(uniques_values_missing_code)}")
-	# stations_unique = charging_points['adresse_station'].unique()
-	# percentage_missing_code = (len(uniques_values_missing_code) / len(stations_unique)) * 100
-	# st.write(f"Percentage of missing code postal in [adresse_station]: {percentage_missing_code}") 
