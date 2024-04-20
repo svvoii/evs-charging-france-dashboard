@@ -5,6 +5,7 @@ import ast # for converting string to dictionary using ast.literal_eval
 import json # for converting dictionary to string using json.dumps
 import folium # for creating maps from GeoJSON data
 import streamlit_folium as folium_static # for displaying maps in Streamlit
+from streamlit_folium import st_folium # for displaying maps in Streamlit
 
 
 APP_TITLE = "Map Dashboard"
@@ -16,7 +17,7 @@ def load_dataset():
 	return charging_points, location_data
 
 @st.cache_data # Caching the data to avoid loading it multiple times
-def extract_postal_code(location_data):
+def extract_postal_code(location_data): # This will extract postal code from the location_data file (received via google API)
 	location_data_list = []
 	postal_codes = []
 	for index, row in location_data.iterrows():
@@ -77,6 +78,31 @@ def display_map(charging_points, geojson_file):
 
 	return m
 
+def render_map(df, geojson_file):
+	map = folium.Map(location=[46.603354, 1.8883344], zoom_start=6, tiles='CartoDB positron')
+
+	points_by_department = df['depart_code'].value_counts().reset_index()
+	points_by_department.columns = ['depart_code', 'count']
+
+	choropleth = folium.Choropleth(
+		geo_data="data/france_departments.geojson",
+		data=points_by_department,
+		columns=['depart_code', 'count'],
+		key_on='feature.properties.code',	
+		line_opacity=0.8,
+		line_color='black',
+		highlight=True,
+	)
+	choropleth.geojson.add_to(map)
+	choropleth.geojson.add_child(
+		folium.features.GeoJsonTooltip(['nom'], labels=False)
+	)
+
+	st_map = st_folium(map, width=800, height=600)
+ 
+	st.write(df.shape)
+	st.write(df.head())
+	st.write(df.columns)
 
 def main():
 	st.set_page_config(APP_TITLE)
@@ -121,7 +147,6 @@ def main():
 	st.write(missing_postal_code[['adresse_station', 'consolidated_code_postal', 'consolidated_commune', 'extracted_code_postal']].drop_duplicates())
 	# st.write(missing_postal_code['adresse_station'].unique())
 
-
 	st.write(f"Charging points. TOTAL (rows, columns):")
 	st.write(charging_points.shape)
 	st.write(charging_points.head())
@@ -139,6 +164,8 @@ def main():
 	st.write(f"DEBUG: Displaying map with charging points data")
 	m = display_map(charging_points, "data/france_departments.geojson")
 	folium_static.folium_static(m)
+
+	render_map(charging_points, "data/france_departments.geojson")
  
 	# Displaying data tables and metrics
  

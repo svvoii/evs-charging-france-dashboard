@@ -3,3 +3,4 @@
 !/data/info.txt
 !/data/location_data.csv
 !/data/france_departments.geojson
+app_backup.py

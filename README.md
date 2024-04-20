@@ -20,7 +20,7 @@ Run these commands in the root directory of this project before running the stre
 `source .venv/bin/activate` - to activate the virtual environment  
 `python -m pip install pandas` - to install pandas  
 `python -m pip install python-dotenv` - to install python-dotenv (for loading Google API key as an environment variable)  
-`python -m pip install tqdm` - to install tqdm which is a progress bar library which is used in `exract_geocode.py`.  
+`python -m pip install tqdm` - to install tqdm which is a progress bar library which is used in `exract_geocode.py`. Not necessary is the `location_data.csv` file is already in the `data` folder.    
 `python -m pip install streamlit` - to install streamlit  
 `python -m pip install streamlit-folium` - to install streamlit-folium which is a streamlit wrapper for folium to create interactive maps.  
 
@@ -43,4 +43,4 @@ Once the data is preprocessed, we can run the streamlit app:
 
 
 Credit for the tutorial goes to [Code With Zak](https://www.youtube.com/watch?v=uXj76K9Lnqc)  
-(continue from min 8:00)  
+(continue from min 48:00 .. adding the number of charging points when hovering over the department on the map)  
