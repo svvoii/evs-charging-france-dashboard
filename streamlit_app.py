@@ -6,6 +6,7 @@ import json # for converting dictionary to string using json.dumps
 import folium # for creating maps from GeoJSON data
 import streamlit_folium as folium_static # for displaying maps in Streamlit
 from streamlit_folium import st_folium # for displaying maps in Streamlit
+from src.plot import count_stations_per_month
 
 
 APP_TITLE = "Map Dashboard"
@@ -107,6 +108,8 @@ def render_map(df, year):
 	department_name = ''
 	if st_map['last_active_drawing']:
 		department_name = st.write(st_map['last_active_drawing']['properties']['nom'])
+		department_code = st_map['last_active_drawing']['properties']['code']
+		count_stations_per_month(df, department_code)
 	
 	return department_name
  
@@ -175,8 +178,8 @@ def main():
 
 	# display_missing_values(charging_points) # This will display the number of missing values in each column (missing in RED, no missing in GREEN)
 	
-	st.write(f"DEBUG: Number of rows where [{postal_code}] is missing, TOTAL (with duplicates) [{missing_postal_code.shape[0]}], list without duplicates :")
-	st.write(missing_postal_code[['adresse_station', 'consolidated_code_postal', 'consolidated_commune', 'extracted_code_postal']].drop_duplicates())
+	# st.write(f"DEBUG: Number of rows where [{postal_code}] is missing, TOTAL (with duplicates) [{missing_postal_code.shape[0]}], list without duplicates :")
+	# st.write(missing_postal_code[['adresse_station', 'consolidated_code_postal', 'consolidated_commune', 'extracted_code_postal']].drop_duplicates())
 	# st.write(missing_postal_code['adresse_station'].unique())
 
 	st.write(f"Charging points. TOTAL (rows, columns):")
@@ -199,7 +202,7 @@ def main():
 
 	year = display_year_filer(charging_points)
 	department_name = render_map(charging_points, year)
-	department_name = display_department_filter(charging_points, department_name)
+	# department_name = display_department_filter(charging_points, department_name)
 
 	# st.write(f"DEBUG: Displaying map with charging points data")
 	# m = display_map(charging_points, "data/france_departments.geojson")
