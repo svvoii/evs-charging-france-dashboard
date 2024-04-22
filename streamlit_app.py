@@ -78,8 +78,7 @@ def display_map(charging_points, geojson_file):
 
 	return m
 
-def render_map(df, year):
-	df = df[df['year'] == year]	
+def render_map(df):
 
 	map = folium.Map(location=[46.603354, 1.8883344], zoom_start=6, tiles='CartoDB positron', scrollWheelZoom=False)
 
@@ -104,37 +103,38 @@ def render_map(df, year):
 
 	st_map = st_folium(map, width=800, height=600)
 
-	department_name = ''
-	if st_map['last_active_drawing']:
-		department_name = st.write(st_map['last_active_drawing']['properties']['nom'])
+	# department_name = ''
+	# if st_map['last_active_drawing']:
+	# 	st.session_state['department_code'] = st_map['last_active_drawing']['properties']['nom']
+	# 	# department_name = st.write(st_map['last_active_drawing']['properties']['nom'])
 	
-	return department_name
+	# return st.session_state['department_code']
  
-	# st.write(df.shape)
-	# st.write(df.head())
-	# st.write(df.columns)
-
-def display_year_filer(charging_points):
- 
-	year_list = list(charging_points['year'].unique())
-	year_list.sort()
-	year = st.sidebar.selectbox('Select Year', year_list, len(year_list) - 1)
+def display_year_filter(charging_points):
+	year_list = ['All'] + sorted(list(charging_points['year'].unique()), reverse=True)
+	year = st.sidebar.selectbox('Select Year', year_list, 0)
 	st.header(f'{year}')
 
-	# if year != "All":
-	# 	filtered_data = charging_points[charging_points['year'] == year]
-	# else:
-	# 	filtered_data = charging_points
+	if year != "All":
+		filtered_data = charging_points[charging_points['year'] == year]
+	else:
+		filtered_data = charging_points
 
-	# st.write(f"Number of points for {year}: {filtered_data.shape[0]}")
+	# st.write(f"Number of points: {filtered_data.shape[0]}")
 	return year
 
-def display_department_filter(charging_points, department_name):
-	department_list = [''] + list(charging_points['depart_code'].unique())
-	# department_list.sort()
-	dp_index = department_list.index(department_name) if department_name and department_name in department_list else 0
-	department_name = st.sidebar.selectbox('Department', department_list, dp_index)
-	return department_name
+def display_department_filter(charging_points):
+	department_list = ['All'] + sorted([str(x) for x in charging_points['depart_code'].unique() if str(x) != 'nan'])
+	department_code = st.sidebar.selectbox('Department', department_list, 0)
+	# st.session_state['department_code'] = st.sidebar.selectbox('Department', department_list, department_list.index(st.session_state['department_code']))
+	# return st.session_state['department_code']
+	return department_code
+
+def display_metrics(charging_points, year, department_code):
+	col1, col2, col3 = st.columns(3)
+	col1.metric("Number of e-points", '{:,}'.format(charging_points.shape[0]))
+	col2.metric("Year", year)
+	col3.metric("Department", department_code)
 
 def main():
 	st.set_page_config(APP_TITLE)
@@ -156,14 +156,13 @@ def main():
 	charging_points['extracted_code_postal'] = charging_points['adresse_station'].str.extract(r"(\d{5})")
 	charging_points['consolidated_code_postal'] = charging_points['consolidated_code_postal'].fillna(charging_points['extracted_code_postal']) # Fill missing values in 'consolidated_code_postal' with 'extracted_code_postal'
 
-	# After this last extraction and merging the missing values in `consolidated_code_postal` are 12 (6 unique) which is negligible) !
+	# ##### #
+	# After this last extraction and merging the amount of missing values in `consolidated_code_postal' is negligible (~ 12-20))
 	# Now we can use the `consolidated_code_postal` column to break down the data by regions and display it on the map !!
 	# ##### #
 
 	# Now we can use the `consolidated_code_postal` column to break down the data by regions and display it on the map
 	charging_points['depart_code'] = charging_points['consolidated_code_postal'].str[:2] # Extract the first two digits of the postal code to get the commune
- 
-	# We can also use the `consolidated_longitude` and `consolidated_latitude` columns to display the data on the map
 
 	# Filters
 	postal_code = "consolidated_code_postal"
@@ -174,32 +173,39 @@ def main():
 	# charging_points = charging_points[(charging_points[postal_code].astype(str).str[0] == '7')] # Filter by postal code starting with 7
 
 	# display_missing_values(charging_points) # This will display the number of missing values in each column (missing in RED, no missing in GREEN)
-	
-	st.write(f"DEBUG: Number of rows where [{postal_code}] is missing, TOTAL (with duplicates) [{missing_postal_code.shape[0]}], list without duplicates :")
-	st.write(missing_postal_code[['adresse_station', 'consolidated_code_postal', 'consolidated_commune', 'extracted_code_postal']].drop_duplicates())
+
+	### DISPLAYING FILTERS AND MAP ###
+	# the following line will create a new column `year` in the charging_points dataframe
+	# charging_points['year'] = pd.to_datetime(charging_points['date_maj']).dt.year
+	charging_points['year'] = pd.to_datetime(charging_points['created_at']).dt.year
+
+	year = display_year_filter(charging_points)
+	department_code = display_department_filter(charging_points)
+	if year != "All":
+		charging_points = charging_points[charging_points['year'] == year]
+	if department_code != "All":
+		charging_points = charging_points[charging_points['depart_code'] == department_code]
+
+	render_map(charging_points)
+
+	# st.write(f"Number of charging points: {charging_points.shape[0]}")
+	display_metrics(charging_points, year, department_code)
+
+	# st.write(f"DEBUG: Number of rows where [{postal_code}] is missing, TOTAL (with duplicates) [{missing_postal_code.shape[0]}], list without duplicates :")
+	# st.write(missing_postal_code[['adresse_station', 'consolidated_code_postal', 'consolidated_commune', 'extracted_code_postal']].drop_duplicates())
 	# st.write(missing_postal_code['adresse_station'].unique())
 
 	st.write(f"Charging points. TOTAL (rows, columns):")
 	st.write(charging_points.shape)
 	st.write(charging_points.head())
-	st.write(charging_points.columns)
+	# st.write(charging_points.columns)
 	
-	st.write(f"Charging points by department. TOTAL (rows, columns):")
-	st.write(charging_points_by_department.shape)
-	st.write(charging_points_by_department)
+	# st.write(f"Charging points by department. TOTAL (rows, columns):")
+	# st.write(charging_points_by_department.shape)
+	# st.write(charging_points_by_department)
 
 	# has_postal_code = check_postal_code(location_data)
 	# st.write(f"DEBUG: There is postal code in the location data: {has_postal_code}")
-
-	# Displaying filters and map
-	charging_points['year'] = pd.to_datetime(charging_points['date_maj']).dt.year
-
-	year = 2024
-	department_name = ''
-
-	year = display_year_filer(charging_points)
-	department_name = render_map(charging_points, year)
-	department_name = display_department_filter(charging_points, department_name)
 
 	# st.write(f"DEBUG: Displaying map with charging points data")
 	# m = display_map(charging_points, "data/france_departments.geojson")
