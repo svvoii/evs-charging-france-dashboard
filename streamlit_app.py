@@ -10,13 +10,61 @@ from streamlit_folium import st_folium # for displaying maps in Streamlit
 
 APP_TITLE = "Map Dashboard"
 
-@st.cache_data # Caching the data to avoid loading it multiple times
+def check_dtypes(dataframes, dataframe_names):
+    for df, name in zip(dataframes, dataframe_names):
+        st.write(f"Data type in {name} dataframe:")
+        st.write(df.dtypes)
+
 def load_dataset():
-	charging_points = pd.read_csv("data/charging_points.csv", low_memory=False)
-	location_data = pd.read_csv("data/location_data.csv")
-	voitures = pd.read_csv("data/voitures.csv", sep=";")
-	insee_code = pd.read_csv("data/INSEE_to_codpostal.csv", delimiter=";", encoding="ISO-8859-1").rename(str.strip, axis='columns')
+	charging_points = pd.read_csv("data/charging_points.csv", dtype=object)
+	location_data = pd.read_csv("data/location_data.csv", dtype=object)
+	voitures = pd.read_csv("data/voitures.csv", sep=";", dtype=object)
+	insee_code = pd.read_csv("data/insee_code.csv", sep=";", dtype=object)
 	return charging_points, location_data, voitures, insee_code
+
+# @st.cache_data # Caching the data to avoid loading it multiple times
+# def load_dataset():
+# 	charging_points = pd.read_csv("data/charging_points.csv", low_memory=True)
+
+# 	location_data = pd.read_csv("data/location_data.csv", low_memory=True, dtype={
+# 		'consolidated_latitude': 'float',
+# 		'consolidated_longitude': 'float',
+# 		'location_data': 'str',
+# 		'code_postal': 'str',
+# 	})
+
+# 	voitures = pd.read_csv("data/voitures.csv", sep=";", low_memory=True, dtype={
+# 		'codgeo': 'str',
+# 		'libgeo': 'str',
+# 		'epci': 'str',
+# 		'libepci': 'str',
+# 		'date_arrete': 'str',
+# 		'nb_vp_rechargeables_el': 'int',
+# 		'nb_vp_rechargeables_gaz': 'int',
+# 		'nb_vp': 'int',
+# 	})
+
+# 	insee_code = pd.read_csv("data/insee_code.csv", sep=";", low_memory=True, dtype={
+# 		'Code INSEE': 'str',
+# 		'Code Postal': 'str',
+# 		'Commune': 'str',
+# 		'Département': 'str',
+# 		'Région': 'str',
+# 		'Statut': 'str',
+# 		'Altitude Moyenne': 'int',
+# 		'Superficie': 'int',
+# 		'population': 'str',
+# 		'geo_point_2d': 'str',
+# 		'geo_shape': 'object',
+# 		'ID Geofla': 'str',
+# 		'Code Commune': 'int',
+# 		'Code Canton': 'int',
+# 		'Code Arrondissement': 'int',
+# 		'Code Département': 'object',
+# 		'Code Région': 'int', 
+# 	})
+# 	# insee_code = pd.read_csv("data/INSEE_to_codpostal.csv", delimiter=";", encoding="ISO-8859-1").rename(str.strip, axis='columns')
+# 	return charging_points, location_data, voitures, insee_code
 
 @st.cache_data # Caching the data to avoid loading it multiple times
 def extract_postal_code(location_data): # This will extract postal code from the location_data file (received via google API)
@@ -109,6 +157,9 @@ def main():
 	st.caption("A simple dashboard to display maps and data tables. made by: `Serge` and `Nammi`. `Plug-In Progress`")
 
 	charging_points, location_data, voitures, insee_code = load_dataset() # Loading data from CSV files
+
+	# check_dtypes([charging_points, location_data, voitures, insee_code], ["charging_points", "location_data", "voitures", "insee_code"])	
+
 	location_data = extract_postal_code(location_data) # Extracting postal_code from location_data
 
 	# Renaming columns in location_data to correspond with the charging_points data
@@ -157,32 +208,38 @@ def main():
 	# st.write(missing_postal_code[['adresse_station', 'consolidated_code_postal', 'consolidated_commune', 'extracted_code_postal']].drop_duplicates())
 	# st.write(missing_postal_code['adresse_station'].unique())
 
-	st.write(f"Charging points. TOTAL (rows, columns):")
-	st.write(charging_points.shape)
-	st.write(charging_points.head())
+	# st.write(f"Charging points. TOTAL (rows, columns):")
+	# st.write(charging_points.shape)
+	# st.write(charging_points.head())
+	# st.write(charging_points.dtypes)
 	# st.write(charging_points.columns)
 
+	############################################
 	# INSEE CODE DATA
 
-	insee_code = insee_code.rename(columns={'#Code_commune_INSEE': 'codgeo'})
-	insee_code = insee_code.rename(columns={'Code_postal': 'code_postal'})
-
-	missing_code_insee = insee_code[insee_code['codgeo'].isna()]
+	insee_code = insee_code.rename(columns={'Code INSEE': 'codgeo'})
+	insee_code = insee_code.rename(columns={'Code Postal': 'code_postal'})
 
 	st.write(f"INSEE. TOTAL (rows, columns):")
 	st.write(insee_code.shape)
-	st.write(f"Number of rows where [codgeo] is missing, TOTAL (with duplicates) [{missing_code_insee.shape[0]}], list without duplicates :")
-	st.write(missing_code_insee[['codgeo', 'code_postal', 'Nom_de_la_commune']].drop_duplicates())
 	st.write(insee_code.head())
 	st.write(insee_code.dtypes)
 	# st.write(insee_code.columns)
 
+	# MERGING INSEE CODE INTO VOITURES DATA
+	# Merge the dataframes on 'codgeo'
+	voitures = voitures.merge(insee_code[['codgeo', 'code_postal', 'Code Département']], on='codgeo', how='left')
 
 	# VOITURES DATA
 
+
 	st.write(f"Voitures. TOTAL (rows, columns):")
 	st.write(voitures.shape)
-	# st.write(missing_postal_code_voitures[['codgeo', 'code_postal', 'libgeo']])
+	# MISSING DATA VISUAL (around 185 unique missing values in code_postal, negligible):
+	# missing_data = voitures[voitures['code_postal'].isna()]
+	# unique_missing_data = missing_data[['codgeo', 'libgeo', 'code_postal', 'Code Département']].drop_duplicates()
+	# st.write(f"Number of rows where [code_postal] is missing, TOTAL (with duplicates) [{missing_data.shape[0]}], list without duplicates [{unique_missing_data.shape[0]}] :")
+	# st.write(missing_data[['codgeo', 'libgeo', 'code_postal', 'Code Département']].drop_duplicates())
 	st.write(voitures.head())
 	st.write(voitures.dtypes)
 	# st.write(voitures.columns)
