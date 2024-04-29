@@ -3,4 +3,6 @@
 !/data/info.txt
 !/data/location_data.csv
 !/data/france_departments.geojson
+!/data/voitures.csv
+!/data/INSEE_to_codpostal.csv
 app_backup.py

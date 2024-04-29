@@ -14,7 +14,9 @@ APP_TITLE = "Map Dashboard"
 def load_dataset():
 	charging_points = pd.read_csv("data/charging_points.csv", low_memory=False)
 	location_data = pd.read_csv("data/location_data.csv")
-	return charging_points, location_data
+	voitures = pd.read_csv("data/voitures.csv", sep=";")
+	insee_code = pd.read_csv("data/INSEE_to_codpostal.csv", delimiter=";", encoding="ISO-8859-1").rename(str.strip, axis='columns')
+	return charging_points, location_data, voitures, insee_code
 
 @st.cache_data # Caching the data to avoid loading it multiple times
 def extract_postal_code(location_data): # This will extract postal code from the location_data file (received via google API)
@@ -48,35 +50,6 @@ def display_missing_values(charging_points):
 		else:
 			st.markdown(f"<font color='green'>**{column}: {missing_values}**</font>", unsafe_allow_html=True)
 
-# This function will display the map using `folium` library with GeoJSON data
-def display_map(charging_points, geojson_file):
-	# Extract the first two digits of the postal code to get the department
-	charging_points['depart_code'] = charging_points['consolidated_code_postal'].str[:2]
-    
-	points_by_department = charging_points['depart_code'].value_counts().reset_index()
-	points_by_department.columns = ['depart_code', 'count']
-
-	# Load GeoJSON data
-	with open(geojson_file) as f:
-		france_departments_geo = json.load(f)
-
-	# Create a map object
-	m = folium.Map(location=[46.603354, 1.888334], zoom_start=5)
-
-	# Create a choropleth map
-	folium.Choropleth(
-		geo_data=france_departments_geo,
-		name='choropleth',
-		data=points_by_department,
-		columns=['depart_code', 'count'],
-		key_on='feature.properties.code',
-		fill_color='YlGn',
-		fill_opacity=0.7,
-		line_opacity=0.2,
-		legend_name='Number of charging points by department'
-	).add_to(m)
-
-	return m
 
 def render_map(df):
 
@@ -103,12 +76,6 @@ def render_map(df):
 
 	st_map = st_folium(map, width=800, height=600)
 
-	# department_name = ''
-	# if st_map['last_active_drawing']:
-	# 	st.session_state['department_code'] = st_map['last_active_drawing']['properties']['nom']
-	# 	# department_name = st.write(st_map['last_active_drawing']['properties']['nom'])
-	
-	# return st.session_state['department_code']
  
 def display_year_filter(charging_points):
 	year_list = ['All'] + sorted(list(charging_points['year'].unique()), reverse=True)
@@ -141,7 +108,7 @@ def main():
 	st.title(APP_TITLE)
 	st.caption("A simple dashboard to display maps and data tables. made by: `Serge` and `Nammi`. `Plug-In Progress`")
 
-	charging_points, location_data = load_dataset() # Loading data from CSV files
+	charging_points, location_data, voitures, insee_code = load_dataset() # Loading data from CSV files
 	location_data = extract_postal_code(location_data) # Extracting postal_code from location_data
 
 	# Renaming columns in location_data to correspond with the charging_points data
@@ -164,15 +131,11 @@ def main():
 	# Now we can use the `consolidated_code_postal` column to break down the data by regions and display it on the map
 	charging_points['depart_code'] = charging_points['consolidated_code_postal'].str[:2] # Extract the first two digits of the postal code to get the commune
 
-	# Filters
+	# CHARGING POINTS DATA
 	postal_code = "consolidated_code_postal"
 	missing_postal_code = charging_points[charging_points[postal_code].isna()]
 	commune = "consolidated_commune"
 	charging_points_by_department = charging_points['depart_code'].value_counts()
-
-	# charging_points = charging_points[(charging_points[postal_code].astype(str).str[0] == '7')] # Filter by postal code starting with 7
-
-	# display_missing_values(charging_points) # This will display the number of missing values in each column (missing in RED, no missing in GREEN)
 
 	### DISPLAYING FILTERS AND MAP ###
 	# the following line will create a new column `year` in the charging_points dataframe
@@ -186,9 +149,8 @@ def main():
 	if department_code != "All":
 		charging_points = charging_points[charging_points['depart_code'] == department_code]
 
-	render_map(charging_points)
+	# render_map(charging_points)
 
-	# st.write(f"Number of charging points: {charging_points.shape[0]}")
 	display_metrics(charging_points, year, department_code)
 
 	# st.write(f"DEBUG: Number of rows where [{postal_code}] is missing, TOTAL (with duplicates) [{missing_postal_code.shape[0]}], list without duplicates :")
@@ -199,23 +161,32 @@ def main():
 	st.write(charging_points.shape)
 	st.write(charging_points.head())
 	# st.write(charging_points.columns)
-	
-	# st.write(f"Charging points by department. TOTAL (rows, columns):")
-	# st.write(charging_points_by_department.shape)
-	# st.write(charging_points_by_department)
 
-	# has_postal_code = check_postal_code(location_data)
-	# st.write(f"DEBUG: There is postal code in the location data: {has_postal_code}")
+	# INSEE CODE DATA
 
-	# st.write(f"DEBUG: Displaying map with charging points data")
-	# m = display_map(charging_points, "data/france_departments.geojson")
-	# folium_static.folium_static(m)
+	insee_code = insee_code.rename(columns={'#Code_commune_INSEE': 'codgeo'})
+	insee_code = insee_code.rename(columns={'Code_postal': 'code_postal'})
 
- 
-	# Will show the unique values of the given column
-	# st.write(charging_points['date_maj'].unique())
-	# Displaying data tables and metrics
- 
+	missing_code_insee = insee_code[insee_code['codgeo'].isna()]
+
+	st.write(f"INSEE. TOTAL (rows, columns):")
+	st.write(insee_code.shape)
+	st.write(f"Number of rows where [codgeo] is missing, TOTAL (with duplicates) [{missing_code_insee.shape[0]}], list without duplicates :")
+	st.write(missing_code_insee[['codgeo', 'code_postal', 'Nom_de_la_commune']].drop_duplicates())
+	st.write(insee_code.head())
+	st.write(insee_code.dtypes)
+	# st.write(insee_code.columns)
+
+
+	# VOITURES DATA
+
+	st.write(f"Voitures. TOTAL (rows, columns):")
+	st.write(voitures.shape)
+	# st.write(missing_postal_code_voitures[['codgeo', 'code_postal', 'libgeo']])
+	st.write(voitures.head())
+	st.write(voitures.dtypes)
+	# st.write(voitures.columns)
+
 
 if __name__ == "__main__":
     main()
