@@ -1,4 +1,5 @@
 #### Map Dashboard Visualization of Electric Vehicle Charging Stations Project
+(this tutorial is not complete yet, it is still in progress)
 
 The datasets used in this project must be placed in the `data` folder. Sources of the datasets are:  
 `https://www.data.gouv.fr/fr/datasets/fichier-consolide-des-bornes-de-recharge-pour-vehicules-electriques/` - the link to the data source from `data.gouv.fr` website for electric vehicle charging stations in France. The current name of this dataset used in `streamlit_app.py` is `charging_points.csv`. Data based on (v2.3.1) update as of 2024-04-18.  
@@ -39,8 +40,3 @@ Requested data was only fo the missing values in `code_postal` wich are unique b
 Once the data is preprocessed, we can run the streamlit app:
 `streamlit run streamlit_app.py` - to run the streamlit app  
 ...  
-
-
-
-Credit for the tutorial goes to [Code With Zak](https://www.youtube.com/watch?v=uXj76K9Lnqc)  
-(continue from min 48:00 .. adding the number of charging points when hovering over the department on the map)  
