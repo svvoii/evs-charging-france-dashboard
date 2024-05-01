@@ -242,6 +242,8 @@ def main():
 	# st.write(merged_data.head())
 	st.write(merged_data)
 
+	merged_data.to_csv("data/voitures_epoints.csv", index=False) # Saving to the same file
+
 	# show_map(merged_data)
 	# render_map(merged_data)
 
