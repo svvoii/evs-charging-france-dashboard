@@ -33,6 +33,12 @@ def render_map(df, year=None):
 	
 	# Just to check the calculaton results
 	# df.to_csv('data/ratio_result_after.csv')
+
+	Q1 = df['ratio'].quantile(0.25)
+	Q3 = df['ratio'].quantile(0.75)
+	IQR = Q3 - Q1
+	filter = (df['ratio'] >= Q1 - 1.5 * IQR) & (df['ratio'] <= Q3 + 1.5 *IQR)
+	df = df.loc[filter]
 	
 	total_epoints = df['num_epoints'].sum()
 	total_evs = df['nb_vp_rechargeables_el'].sum()
@@ -42,7 +48,7 @@ def render_map(df, year=None):
 
 	create_choropleth(map, df, 'num_epoints', 'BuGn', 'Number of charging points')
 	create_choropleth(map, df, 'nb_vp_rechargeables_el', 'OrRd', 'Number of electric vehicles')
-	create_choropleth(map, df, 'ratio', 'PuRd', 'Ratio of electric vehicles per charging point')
+	create_choropleth(map, df, 'ratio', 'PuRd', 'NUMBER of EVs per charging point')
 
 	folium.LayerControl().add_to(map)
 
