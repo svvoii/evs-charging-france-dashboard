@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import streamlit as st
 import folium
 from streamlit_folium import folium_static
@@ -26,34 +27,45 @@ def render_map(df, year=None):
 		df = df[df['year'] == year]
 
 	df = df.groupby('depart_code').agg({'num_epoints': 'sum', 'nb_vp_rechargeables_el': 'sum'}).reset_index()
+	df['num_epoints'] = df['num_epoints'].fillna(0.1)
+	df['num_epoints'] = df['num_epoints'].replace(0, 0.1)
+	df['ratio'] = np.where(df['num_epoints'] >= 1, df['nb_vp_rechargeables_el'] / df['num_epoints'], 500) # how to deal with outliers?
+	
+	# Just to check the calculaton results
+	# df.to_csv('data/ratio_result_after.csv')
+	
 	total_epoints = df['num_epoints'].sum()
 	total_evs = df['nb_vp_rechargeables_el'].sum()
+	ratio = total_evs / total_epoints # what if total_epoints is 0 ? < there is no way this value goes 0
 
 	map = folium.Map(location=[46.603354, 1.8883344], zoom_start=6, tiles='CartoDB positron', scrollWheelZoom=False)
 
 	create_choropleth(map, df, 'num_epoints', 'BuGn', 'Number of charging points')
 	create_choropleth(map, df, 'nb_vp_rechargeables_el', 'OrRd', 'Number of electric vehicles')
+	create_choropleth(map, df, 'ratio', 'PuRd', 'Ratio of electric vehicles per charging point')
 
 	folium.LayerControl().add_to(map)
 
 	folium_static(map, width=800, height=800)
 
-	return total_epoints, total_evs
+	return total_epoints, total_evs, ratio
 
 def show_map(df, selected_year):
 
 	# Render the map. If `All` is selected, render the map for all years
 	if selected_year == 'All':
-		e_points, evs = render_map(df)
+		e_points, evs, ratio = render_map(df)
 	else:
-		e_points, evs = render_map(df, selected_year)
+		e_points, evs, ratio = render_map(df, selected_year)
 
-	col1, col2 = st.columns(2)
+	col1, col2, col3 = st.columns(3)
 
 	with col1:
 		st.metric("Total number of charging points", e_points)
 	with col2:
 		st.metric("Total number of electric vehicles", evs)
+	with col3:
+		st.metric("Ratio of electric vehicles per charging point", ratio)
   
 
 def main():
