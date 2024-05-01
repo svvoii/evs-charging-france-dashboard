@@ -5,21 +5,33 @@ import folium
 from streamlit_folium import folium_static
 
 def create_choropleth(map, df, column, color, legend_name):
+	custom_scale = df[column].quantile([0, 0.25, 0.5, 0.75, 1]).tolist()
 	choropleth = folium.Choropleth(
 		geo_data="data/france_departments.geojson",
 		name=legend_name,
 		data=df,
 		columns=['depart_code', column],
+		threshold_scale=custom_scale,
 		key_on='feature.properties.code',
 		fill_color=color,
-		fill_opacity=0.7,
+		fill_opacity=0.5,
 		line_opacity=0.2,
 		legend_name=legend_name,
 	).add_to(map)
 
 	choropleth.geojson.add_child(
-		folium.features.GeoJsonTooltip(['nom'])
+		folium.features.GeoJsonTooltip(
+			fields=[
+				'nom'
+			],
+			aliases=[
+				'Departement'
+			]
+		)
 	)
+	# choropleth.geojson.add_child(
+	# 	folium.features.GeoJsonTooltip(['nom'])
+	# )
 
 def render_map(df, year=None):
 	
@@ -30,9 +42,11 @@ def render_map(df, year=None):
 	df['num_epoints'] = df['num_epoints'].fillna(0.1)
 	df['num_epoints'] = df['num_epoints'].replace(0, 0.1)
 	df['ratio'] = np.where(df['num_epoints'] >= 1, df['nb_vp_rechargeables_el'] / df['num_epoints'], 500) # how to deal with outliers?
-	
+	df.sort_values('ratio', ascending=False, inplace=True)
+
+
 	# Just to check the calculaton results
-	# df.to_csv('data/ratio_result_after.csv')
+	df.to_csv('data/ratio_result_after.csv')
 	
 	total_epoints = df['num_epoints'].sum()
 	total_evs = df['nb_vp_rechargeables_el'].sum()
@@ -42,7 +56,7 @@ def render_map(df, year=None):
 
 	create_choropleth(map, df, 'num_epoints', 'BuGn', 'Number of charging points')
 	create_choropleth(map, df, 'nb_vp_rechargeables_el', 'OrRd', 'Number of electric vehicles')
-	create_choropleth(map, df, 'ratio', 'PuRd', 'Ratio of electric vehicles per charging point')
+	create_choropleth(map, df, 'ratio', 'PuBu', 'Ratio of electric vehicles per charging point')
 
 	folium.LayerControl().add_to(map)
 
