@@ -39,11 +39,9 @@ def ft_sidebar(df):
 
 # def create_choropleth(map, df, column, color, legend_name):
 def create_choropleth(map, df, column, color, legend_name):
-	bins = list(df[column].quantile([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]))
-
-	st.write(bins)
-	stats = df[column].describe()
-	st.write(stats)
+	# bins = list(df[column].quantile([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]))
+	# bins = list(np.linspace(df[column].min(), df[column].max(), 10))
+	# st.write(bins)
 
 	choropleth = folium.Choropleth(
 		geo_data="data/france_departments.geojson",
@@ -56,7 +54,7 @@ def create_choropleth(map, df, column, color, legend_name):
 		fill_opacity=0.7,
 		line_opacity=0.2,
 		legend_name=legend_name,
-		bins=bins,
+		# bins=bins,
 	).add_to(map)
 
 	choropleth.geojson.add_child(
@@ -64,19 +62,11 @@ def create_choropleth(map, df, column, color, legend_name):
 	)
 
 def calculate_ratio(df):
-	# df['nb_vp_rechargeables_el'] = df['nb_vp_rechargeables_el'].astype(float)  # Ensure 'nb_vp_rechargeables_el' is float
-	# df['num_epoints'] = df['num_epoints'].astype(float)  # Ensure 'num_epoints' is float
-
 	df['num_epoints'] = df['num_epoints'].fillna(1)
-	df['nb_vp_rechargeables_el'] = df['nb_vp_rechargeables_el'].fillna(1)
+	df['num_evs'] = df['num_evs'].fillna(1)
 
-	low_epoints, high_epoints = df['num_epoints'].quantile([0.25, 0.75])
-	low_evs, high_evs = df['nb_vp_rechargeables_el'].quantile([0.25, 0.75])
-
-	df['epoints'] = df['num_epoints'].clip(lower=low_epoints, upper=high_epoints)
-	df['evs'] = df['nb_vp_rechargeables_el'].clip(lower=low_evs, upper=high_evs)
-
-	df['ratio'] = df['evs'] / df['epoints']
+	df['ratio'] = df['num_evs'] / df['num_epoints']
+	df['ratio'] = df['ratio'].astype(int)
 
 	return df
 
@@ -95,19 +85,21 @@ def render_map(df, selected_year, selected_department):
 	df = calculate_ratio(df)
 
 	st.write(df)
+	stats = df[['num_epoints', 'num_evs', 'ratio']].describe()
+	st.write(stats)
 
 	map = folium.Map(location=[46.603354, 1.8883344], zoom_start=6, tiles='CartoDB positron', scrollWheelZoom=False)
 
 	create_choropleth(map, df, 'ratio', 'Paired', 'NUMBER of EVs per charging point')
-	# create_choropleth(map, df, 'num_epoints', 'BuGn', 'Number of charging points')
-	# create_choropleth(map, df, 'nb_vp_rechargeables_el', 'GnBu', 'Number of electric vehicles')
+	create_choropleth(map, df, 'num_epoints', 'BuGn', 'Number of charging points')
+	create_choropleth(map, df, 'num_evs', 'GnBu', 'Number of electric vehicles')
 
 	folium.LayerControl().add_to(map)
 
 	folium_static(map, width=800, height=800)
 
 	total_epoints = df['num_epoints'].sum()
-	total_evs = df['nb_vp_rechargeables_el'].sum()
+	total_evs = df['num_evs'].sum()
 	ratio = total_evs / total_epoints # what if total_epoints is 0 ? < there is no way this value goes 0
 
 	return total_epoints, total_evs, ratio
@@ -129,6 +121,7 @@ def show_map(df, selected_year, selected_department):
 def main():
 	# Load the data
 	df = pd.read_csv('data/voitures_epoints.csv')
+	df = df.rename(columns={'nb_vp_rechargeables_el': 'num_evs'})
 
 	selecetd_year, selected_department = ft_sidebar(df)
 
@@ -136,13 +129,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-	# df['num_epoints'] = df['num_epoints'].fillna(0.1)
-	# df['num_epoints'] = df['num_epoints'].replace(0, 0.1)
-	# df['ratio'] = np.where(df['num_epoints'] >= 1, df['nb_vp_rechargeables_el'] / df['num_epoints'], 500) # how to deal with outliers?
-	# Q1 = df['ratio'].quantile(0.25)
-	# Q3 = df['ratio'].quantile(0.75)
-	# IQR = Q3 - Q1
-	# filter = (df['ratio'] >= Q1 - 1.5 * IQR) & (df['ratio'] <= Q3 + 1.5 *IQR)
-	# df = df.loc[filter]
-	
