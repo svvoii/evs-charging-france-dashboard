@@ -16,7 +16,8 @@ def load_dataset():
 	location_data = pd.read_csv("data/location_data.csv", dtype=str)
 	voitures = pd.read_csv("data/voitures.csv", sep=";", dtype=str)
 	insee_code = pd.read_csv("data/insee_code.csv", sep=";", dtype=str)
-	return charging_points, location_data, voitures, insee_code
+	departments = pd.read_csv("data/v_departement_2024.csv", dtype=str)
+	return charging_points, location_data, voitures, insee_code, departments
 
 # @st.cache_data # Caching the data to avoid loading it multiple times
 # def load_dataset():
@@ -151,9 +152,19 @@ def main():
 	st.title(APP_TITLE)
 	st.caption("A simple dashboard to display maps and data tables. made by: `Serge` and `Nammi`. `Plug-In Progress`")
 
-	charging_points, location_data, voitures, insee_code = load_dataset() # Loading data from CSV files
+	charging_points, location_data, voitures, insee_code, departments = load_dataset() # Loading data from CSV files
 
 	location_data = extract_postal_code(location_data) # Extracting postal_code from location_data
+	location_data['depart_code'] = location_data['code_postal'].str.slice(0, 2) # Extracting the first two digits of the postal code to get the department code
+
+	st.write(f"Location data. TOTAL (rows, columns):")
+	st.write(location_data.shape)
+	st.write(location_data)
+	# st.write(location_data.sort_values('depart_code'))
+	# This should display the unique rows in the location_data file on the column 'code_postal'
+	# unique_rows = location_data.drop_duplicates(subset='depart_code').sort_values(by='depart_code')
+
+	# st.table(unique_rows)
 
 	# Renaming columns in location_data to correspond with the charging_points data
 	location_data = location_data.rename(columns={'longitude': 'consolidated_longitude', 'latitude': 'consolidated_latitude'})
@@ -184,7 +195,6 @@ def main():
 
 	### DISPLAYING FILTERS AND MAP ###
 	# the following line will create a new column `year` in the charging_points dataframe
-	# charging_points['year'] = pd.to_datetime(charging_points['date_maj']).dt.year
 	charging_points['year'] = pd.to_datetime(charging_points['created_at']).dt.year.astype(str)
 
 	year = display_year_filter(charging_points)
@@ -194,9 +204,9 @@ def main():
 	if department_code != "All":
 		charging_points = charging_points[charging_points['depart_code'] == department_code]
  
-	# display_missing_values(charging_points)
+	display_missing_values(charging_points)
  
-	render_map(charging_points)
+	# render_map(charging_points)
 
 	display_metrics(charging_points, year, department_code)
 
@@ -206,7 +216,8 @@ def main():
 
 	st.write(f"Charging points. TOTAL (rows, columns):")
 	st.write(charging_points.shape)
-	st.write(charging_points.head())
+	st.write(charging_points)
+	# st.write(charging_points.head())
 	# st.write(charging_points.columns)
 
 	# st.write(charging_points[['year', 'date_maj', 'created_at', 'last_modified', 'depart_code', 'code_insee_commune']])
@@ -221,6 +232,20 @@ def main():
 	# MERGING INSEE CODE INTO VOITURES DATA (on 'codgeo')
 	voitures = voitures.merge(insee_code[['codgeo', 'code_postal', 'depart_code']], on='codgeo', how='left')
 
+	st.write(f"INSEE Code. TOTAL (rows, columns):")
+	st.write(insee_code.shape)
+	st.write(insee_code)
+	# st.write(insee_code.head())
+	# st.write(insee_code.columns)
+	# unique_values = insee_code['depart_code'].unique()
+	# st.write(f"Total Unique values in [depart_code]: {len(unique_values)}")
+	# st.table(unique_values)
+	
+	# Data by department
+	st.write(f"Departments. TOTAL (rows, columns):")
+	st.write(departments.shape)
+	st.write(departments)
+
 	############################################
 	# VOITURES DATA
 
@@ -229,20 +254,34 @@ def main():
 
 	st.write(f"Voitures. TOTAL (rows, columns):")
 	st.write(voitures.shape)
-	st.write(voitures.head())
+	# st.write(voitures.head())
+	st.write(voitures)
 
 	# AGGREGATING AND MERGING DATA FROM BOTH DATASETS (charging_points and voitures)
 	charging_points_agg = charging_points.groupby(['depart_code', 'year']).size().reset_index(name='num_epoints')
-	voitures_agg = voitures.groupby(['depart_code', 'year'])['nb_vp_rechargeables_el'].sum().reset_index()
+	voitures_agg = voitures.groupby(['depart_code', 'year'])['nb_vp_rechargeables_el'].sum().reset_index(name='num_evs')
 
-	merged_data = pd.merge(charging_points_agg, voitures_agg, on=['depart_code', 'year'], how='outer')
+	merged_data = pd.merge(charging_points_agg, voitures_agg, on=['depart_code'], how='left')
 
 	st.write(f"Merged data. TOTAL (rows, columns):")
 	st.write(merged_data.shape)
 	# st.write(merged_data.head())
 	st.write(merged_data)
 
-	merged_data.to_csv("data/voitures_epoints.csv", index=False) # Saving to the same file
+	# merged_data.to_csv("data/voitures_epoints.csv", index=False) # Saving to the same file
+
+	# merged_data = merged_data.merge(insee_code[['depart_code', 'Département']], on='depart_code', how='left')
+	# merged_data.rename(columns={'Département': 'depart_name'}, inplace=True)
+
+	data_by_department = merged_data.groupby('depart_code')[['num_epoints', 'num_evs']].sum().reset_index()
+
+	depart_map = departments.set_index('DEP')['NCC'].to_dict()
+	data_by_department['depart_name'] = data_by_department['depart_code'].map(depart_map)
+
+	st.write(f"Data by department. TOTAL (rows, columns):")
+	st.write(data_by_department.shape)
+	st.write(data_by_department)
+	# st.write(data_by_department.columns)
 
 	# show_map(merged_data)
 	# render_map(merged_data)
