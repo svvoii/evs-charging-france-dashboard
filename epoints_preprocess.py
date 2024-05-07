@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+from unidecode import unidecode
 
 
 st.set_page_config(
@@ -13,6 +14,7 @@ def load_dataset():
 	epoints = pd.read_csv('data/charging_points.csv', dtype=str)
 	geo_ref = pd.read_csv('data/fr-ref-geo.csv', sep=';', dtype=str)
 	return epoints, geo_ref
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # This will display the number of missing values in each column (missing in RED, no missing in GREEN)
 @st.cache_data
@@ -24,9 +26,10 @@ def display_missing_values(charging_points):
 			st.markdown(f"<font color='red'>**{column}: {missing_values}**</font>", unsafe_allow_html=True)
 		else:
 			st.markdown(f"<font color='green'>**{column}: {missing_values}**</font>", unsafe_allow_html=True)
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # This will extract the postal code from `adresse_station` and store it in `postal_code`, new column
-def extract_postal_code(df):
+def extract_postal_code_from_str(df):
 	def find_postal_code(s):
 		for i in range(len(s)):
 			if s[i:i+5].isdigit() and len(s[i:i+5]) == 5:
@@ -35,90 +38,107 @@ def extract_postal_code(df):
 
 	df['postal_code'] = df['adresse_station'].apply(find_postal_code)
 	return df
-
-# This will return the new coord column in a format: `x, y` with one decimal place to group by the coordinates and fill missing values in the postal code..
-# `coord` example: `[4.352516, 50.8467]` will be formatted as `50.84, 4.35`
-def format_coordinates(df):
-	def format_coord(coord):
-		parts = coord.replace('[', '').replace(']', '').split(',')	
-		# formatted_parts = [str(round(float(part), 1)) for part in parts]
-		formatted_parts = [part[:part.index('.')+3] if '.' in part else part for part in parts]
-		formatted_parts = formatted_parts[::-1] # Reverse the order of the parts
-		return ', '.join(formatted_parts)
-
-	df['lat_long'] = df['coordonneesXY'].apply(format_coord)
-	return df
-
-# This will fill missing values in the 'consolidated_code_postal' and 'postal_code' columns..
-def fill_missing_values(df):
-	# Grouping by 'lat_long' and fill missing values in 'postal_code'
-	df['postal_code'] = df.groupby('lat_long')['postal_code'].transform(lambda x: x.fillna(x.mode()[0] if not x.mode().empty else np.nan))
-
-	# Convert 'postal_code' back to string and replace 'nan' with empty string (None)
-	df['postal_code'] = df['postal_code'].astype(str)
-	df['postal_code'] = df['postal_code'].replace('nan', None)
-
-	# Fill missing values in 'postal_code' from 'consolidated_code_postal' if found
-	df['postal_code'] = df['postal_code'].fillna(df['consolidated_code_postal'])
-	return df
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 def convert_column_to_upper(df, column, new_column):
-	df[new_column] = df[column].str.upper()
+	df[new_column] = df[column].str.upper().apply(unidecode)
 	return df
-
-def is_substring(larger, smaller):
-	return smaller in larger
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # This will add the postal code to the epoints DataFrame by matching the commune name in the 'adresse_station' with the 'COM_NOM_MAJ' in the geo_ref DataFrame
-def add_postal_code(search_in, search_for):
+def add_postal_code(df, geo_ref_cp, key_col):
 	progress_bar = st.progress(0)
+	progress_text = st.empty()
 	# Create a dictionary where the keys are the commune names and the values are the postal codes
-	postal_codes = search_for.set_index('COM_MAJ')['COM_CODE'].to_dict()
-	# Create a new column 'postal_code' and initialize it with None
-	search_in['postal_code'] = None
+	postal_codes = geo_ref_cp.set_index(key_col)['COM_CODE'].to_dict()
 	# Iterate over the items in the postal_codes dictionary
-	for commune_name, postal_code in postal_codes.items():
-		progress_bar.progress((list(postal_codes.keys()).index(commune_name) + 1) / len(postal_codes))
-		# Find the rows where the commune name is in the 'ADR_MAJ' string
-		mask = search_in['ADR_MAJ'].apply(lambda x: commune_name in x)
-		# Assign the corresponding postal code to the 'postal_code' column for those rows
-		search_in.loc[mask, 'postal_code'] = postal_code
+	for i, (commune_name, postal_code) in enumerate(postal_codes.items()):
+		progress = (i + 1) / len(postal_codes)
+		progress_bar.progress(progress)
+		text = 'Processing and matching postal code from `fr-ref-geo.csv` dataset into charging points (epoints) data frame.'
+		progress_text.text(f'{text}\nProcessed {i + 1} of {len(postal_codes)} rows with empty postal code.')
 
-	return search_in
+		# Find the rows where the commune name is in the 'ADR_MAJ' string
+		mask = df['ADR_MAJ'].apply(lambda x: commune_name in x)
+		# Assign the corresponding postal code to the 'postal_code' column for those rows
+		df.loc[mask, 'postal_code'] = postal_code
+
+	return df
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+def postal_code_manual_fixes(df):
+	# Fill in the missing postal codes manually based GPS coordinates `coordonneesXY`
+	df.loc[df['coordonneesXY'] == '[2.05,48.77]', 'postal_code'] = '78180'
+	df.loc[df['coordonneesXY'] == '[2.537134, 49.009377]', 'postal_code'] = '95700'
+	df.loc[df['coordonneesXY'] == '[1.51,43.54]', 'postal_code'] = '31670'
+	df.loc[df['coordonneesXY'] == '[4.81745, 45.751829]', 'postal_code'] = '69005'
+	df.loc[df['coordonneesXY'] == '[4.042399692989961, 44.140507984691325]', 'postal_code'] = '30480'
+	df.loc[df['coordonneesXY'] == '[5.115036, 43.398722]', 'postal_code'] = '13220'
+	df.loc[df['coordonneesXY'] == '[0.163932, 49.513496]', 'postal_code'] = '76600'
+	df.loc[df['coordonneesXY'] == '[1.15170464,49.4665534]', 'postal_code'] = '76160'
+	df.loc[df['coordonneesXY'] == '[5.49,45.67]', 'postal_code'] = '38510'
+	df['postal_code'] = df['postal_code'].astype(str)
+	return df
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+def select_columns(df, columns):
+	new_df = df[columns].copy()
+	return new_df
+
+def process_missing_postal_codes(df_epoints, df_geo_ref):
+	df_epoints = select_columns(df_epoints, ['adresse_station', 'coordonneesXY', 'consolidated_code_postal'])
+	df_geo_ref = select_columns(df_geo_ref, ['COM_NOM', 'COM_CODE', 'COM_NOM_MAJ'])
+
+	df_epoints = convert_column_to_upper(df_epoints, 'adresse_station', 'ADR_MAJ')
+	df_geo_ref = convert_column_to_upper(df_geo_ref, 'COM_NOM', 'COM_MAJ')
+
+	df_epoints['postal_code'] = None
+	df_epoints = extract_postal_code_from_str(df_epoints) # Extract postal code from `adresse_station` string and store it in `postal_code`, new column
+	df_epoints['postal_code'] = df_epoints['postal_code'].fillna(df_epoints['consolidated_code_postal']) # Copy the code from 'consolidated_code_postal' to 'postal_code' if it's not null
+
+	# isolating the rows with missing postal codes
+	missing_codes_df = df_epoints[df_epoints['postal_code'].isnull()]
+	missing_codes_df = add_postal_code(missing_codes_df, df_geo_ref, 'COM_MAJ') # Fills in the missing postal codes form the geo_ref DataFrame based on the commune name
+	df_epoints.update(missing_codes_df) # Update the original DataFrame with extracted postal codes 
+
+	# Some manual fixes (about 60 rows with 9 unique locations) for the remaining missing postal codes
+	df_epoints = postal_code_manual_fixes(df_epoints)
+
+	return df_epoints, df_geo_ref
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 
 def main():
 	epoints, geo_ref = load_dataset()
+	# st.write(f'epoints: {epoints.shape[0]}')
 	# st.write(epoints.shape)
 	# st.write(epoints)
 	# display_missing_values(epoints)
 
-	epoints_copy = epoints[['adresse_station', 'coordonneesXY', 'consolidated_code_postal']].copy()
-	new_df = convert_column_to_upper(epoints_copy, 'adresse_station', 'ADR_MAJ')
-	new_df['postal_code'] = None
+	## PREPROCESSING DATASET ##
+	missing_values = epoints[epoints['consolidated_code_postal'].isnull()]
+	st.write(f'Missing values in `postal_code` column: `{missing_values.shape[0]}` in dataset `epoints`')
 
-	# st.write(new_df.shape)
-	# st.write(new_df)
+	df_epoints, df_geo_ref = process_missing_postal_codes(epoints, geo_ref)
 
-	geo_ref_cp = geo_ref[['COM_NOM', 'COM_CODE', 'COM_NOM_MAJ']].copy()
-	geo_ref_cp = convert_column_to_upper(geo_ref_cp, 'COM_NOM', 'COM_MAJ')
+	columns_to_drop = ['consolidated_code_postal', 'ADR_MAJ']
+	df_epoints.drop(columns=columns_to_drop, inplace=True)
 
-	new_df = add_postal_code(new_df, geo_ref_cp)
+	st.write(f'Dataframe `df_epoints`, rows count: `{df_epoints.shape[0]}`')
+	st.write(df_epoints.shape)
+	st.write(df_epoints)
 
-	# new_df = extract_postal_code(epoints_copy) # Extract postal code from `adresse_station` and store it in `postal_code`, new column
-	# new_df = format_coordinates(new_df) # Format the coordinates into new column `lat_long` (`[4.352516, 50.8467]` will be `50.84, 4.35`)
-	# new_df = fill_missing_values(new_df) # Fill missing values in the `postal_code` by grouping `lat_long` and from 'consolidated_code_postal'
-
-	# missing_values = new_df[new_df['consolidated_code_postal'].isnull() | new_df['postal_code'].isnull()]
-	missing_values = new_df[new_df['postal_code'].isnull()]
-	st.write(f'Missing values: {missing_values.shape[0]}')
+	missing_values = df_epoints[df_epoints['postal_code'].isnull()]
+	st.write(f'Missing values in `postal_code` column: `{missing_values.shape[0]}`, in dataframe `df_epoints`')
 	st.write(missing_values.shape)
 	st.write(missing_values)
 
-	st.write(f'geo_ref: {geo_ref.shape[0]}')
-	st.write(geo_ref_cp.shape)
-	st.write(geo_ref_cp.sort_values('COM_NOM'))
-	# display_missing_values(geo_ref)
+	# st.write(f'Dataframe `df_geo_ref`, rows count: `{df_geo_ref.shape[0]}`')
+	# st.write(df_geo_ref.shape)
+	# st.write(df_geo_ref)
 
+	## GROUPING DATASET BY DEPATRMENT ##
 
 
 if __name__ == '__main__':
