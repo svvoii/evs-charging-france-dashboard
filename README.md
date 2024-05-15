@@ -28,6 +28,10 @@ Run these commands in the root directory of this project before running the stre
 
 `pip install --upgrade pip` - to upgrade pip  
 
+TO LAUNCH THE SCRIPT FOR ALL THE INSTALLATIONS:  
+`chmod +x setup.sh` - to make the script executable  
+`./setup.sh` - to run the script  
+
 ##### Preprocessing the data !!! careful with google API - it is EXPENSIVE !!!
 In this project we filter the data by regions in France. The open-data is incomplete and some of the atributes of the addresses are missing. We use Google API to extract the missing data. In `data` folder there shall be `location_data.csv` file which contains the extracted data from Google API.  
 If the file is not there proceed with the following command (google maps API key required !!!).    
