@@ -44,4 +44,19 @@ Requested data was only fo the missing values in `code_postal` wich are unique b
 ##### Running the streamlit app
 Once the data is preprocessed, we can run the streamlit app:
 `streamlit run streamlit_app.py` - to run the streamlit app  
+
+
+#### ABOUT THE PROJECT  
+
+##### Department Structure in France
+
+There are 101 departments which belong to France.  
+96 departments compose the mainland France (from 01 to 95 where 20 is the Corsica island devided into 2A and 2B as 2 departments).  
+5 departments are overseas territories (971, 972, 973, 974, 976).  
+
+In this project we are visualizing the electric vehicle charging stations in France by departments excluding the overseas territories.  
+
+More information about the departments in France can be found [here](https://www.regions-et-departements.fr/departements-francais?utm_content=cmp-true)  
+
+
 ...  

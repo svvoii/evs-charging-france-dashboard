@@ -189,6 +189,8 @@ def postal_code_manual_fixes(df):
 	df.loc[df['lat_lon'] == '45.67, 5.49', 'postal_code'] = '38510'
 	df.loc[df['lat_lon'] == '46.71, 4.39', 'postal_code'] = '71450'
 
+	df.loc[df['lat_lon'] == '41.93, 8.75', 'postal_code'] = '20090'
+
 	return df
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -259,7 +261,29 @@ def process_missing_postal_codes(df_epoints):
 
 def group_by_department(df):
 	df['department'] = df['postal_code'].str[:2]
-	df = df.groupby('department').size().reset_index(name='count')
+	# Fix the postal codes for Corsica (20) to 2A and 2B
+	df_corse = pd.read_csv('data/code-postal-corse.csv', sep=';', dtype=str)
+	# st.write(df_corse)
+	# Replace `20` with `2A` and `2B` for Corsica in `department` column. Using mapping from `code-postal-corse.csv`
+	df['department'] = df['department'].replace('20', np.nan)
+	code_to_dep = df_corse.set_index('Code_postal')['CODE_DEPT'].to_dict()
+	df['department'] = df['department'].fillna(df['postal_code'].map(code_to_dep))
+	# Removing the rows with empty `department` values as well as all that is not in the range of 1-95 + 2A + 2B
+
+	# This will drop the rows with empty `department` values as well as all that is not in the range of 1-95 + 2A + 2B
+	mask_empty = df['department'] == ''
+	mask_not_in_range = ~df['department'].isin([str(i).zfill(2) for i in range(0, 96)] + ['2A', '2B'])
+	df = df[~(mask_empty | mask_not_in_range)]
+
+	df['epoints'] = df.groupby('department')['department'].transform('size')
+	df = df.drop_duplicates(subset='department')
+	df = df[['department', 'epoints']]
+
+	df_fr_dep = pd.read_csv('data/fr-ref-geo.csv', sep=';', dtype=str)
+	# st.write(df_fr_dep)
+	dep_to_name = df_fr_dep.set_index('DEP_CODE')['DEP_NOM'].to_dict()
+	df['dept_name'] = df['department'].map(dep_to_name)
+
 	return df
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -282,28 +306,40 @@ def main():
 	columns_to_drop = ['consolidated_code_postal']
 	df_epoints.drop(columns=columns_to_drop, inplace=True)
 
-	# df_epoints = group_by_department(df_epoints)
+	df_epoints = group_by_department(df_epoints)
 
+	# Saving the preprocessed dataset to a new CSV file
+	df_epoints.to_csv('data/epoints.csv', index=False)
+	st.write(f'Preprocessed dataset saved to `data/epoints.csv`')
+
+	# # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 	# # DEBUG # #
-	st.write(f'Dataframe `df_epoints`, rows count: `{df_epoints.shape[0]}`')
-	st.write(df_epoints.shape)
-	st.write(df_epoints)
-	# filtered_df = df_epoints[df_epoints['postal_code'].str.startswith('20')]
-	# filtered_df_unique = filtered_df['postal_code'].unique()
-	# st.write(f'Filtered dataframe `df_epoints`, rows count: `{filtered_df.shape[0]}`, unique postal codes starting with `20`: `{filtered_df_unique.shape[0]}`')
-	# st.write(filtered_df)
-	# st.write(filtered_df['postal_code'].unique())
-	missing_values = df_epoints[df_epoints['postal_code'].isnull()]
-	st.write(f'Missing values in `postal_code` column: `{missing_values.shape[0]}`, in dataframe `df_epoints`')
-	if missing_values.shape[0] > 0:
-		st.write(missing_values.shape)
-		st.write(missing_values)
+	# st.write(f'Dataframe `df_epoints`, rows count: `{df_epoints.shape[0]}`')
+	# st.write(df_epoints.shape)
+	# st.write(df_epoints)
+
+	# filtered_df = df_epoints[df_epoints['department'] == '']
+	# st.write(f'Filtered dataframe `df_epoints`, rows count (with '' empty string): `{filtered_df.shape[0]}`: ')
+	# if filtered_df.shape[0] > 0:
+	# 	st.write(filtered_df)
+
+	# filtered_df_unique = filtered_df.drop_duplicates(subset='postal_code')
+	# st.write(f'Filtered dataframe unique postal codes starting with `20`: `{filtered_df_unique.shape[0]}`')
+	# if filtered_df_unique.shape[0] > 0:
+	# 	st.write(filtered_df_unique)
+
+	# missing_values = df_epoints[df_epoints['postal_code'].isnull()]
+	# missing_values = df_epoints[df_epoints['department'].isnull()]
+	# st.write(f'Missing values in `department` column: `{missing_values.shape[0]}`, in dataframe `df_epoints`')
+	# if missing_values.shape[0] > 0:
+	# 	st.write(missing_values.shape)
+	# 	st.write(missing_values)
 	
 	# missing_values_unique_coords = missing_values.drop_duplicates(subset='coordonneesXY')
-	missing_values_unique_coords = missing_values.drop_duplicates(subset='lat_lon')
-	st.write(f'Missing values with unique GPS coordinates (shape): `{missing_values_unique_coords.shape[0]}`')
-	if missing_values_unique_coords.shape[0] > 0:
-		st.write(missing_values_unique_coords)
+	# missing_values_unique_coords = missing_values.drop_duplicates(subset='lat_lon')
+	# if missing_values_unique_coords.shape[0] > 0:
+	# 	st.write(f'Missing values with unique GPS coordinates (shape): `{missing_values_unique_coords.shape[0]}`')
+		# st.write(missing_values_unique_coords)
 	# # # # # # #
 
 	## GROUPING DATASET BY DEPATRMENT ##
