@@ -242,7 +242,7 @@ def map_coordinates_to_postal_code(df):
 	return df
 
 def process_missing_postal_codes(df_epoints):
-	df_epoints = select_columns(df_epoints, ['adresse_station', 'coordonneesXY', 'consolidated_code_postal'])
+	df_epoints = select_columns(df_epoints, ['adresse_station', 'coordonneesXY', 'consolidated_code_postal', 'created_at'])
 
 	df_epoints = extract_postal_code_from_str(df_epoints) # Extract postal code from `adresse_station` string and store it in `postal_code`, new column
 	df_epoints['postal_code'] = df_epoints['postal_code'].fillna(df_epoints['consolidated_code_postal']) # Copy the code from 'consolidated_code_postal' to 'postal_code' if it's not null
@@ -259,32 +259,41 @@ def process_missing_postal_codes(df_epoints):
 	return df_epoints
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-def group_by_department(df):
-	df['department'] = df['postal_code'].str[:2]
+def adding_department(df):
+	df['dept_code'] = df['postal_code'].str[:2]
 	# Fix the postal codes for Corsica (20) to 2A and 2B
 	df_corse = pd.read_csv('data/code-postal-corse.csv', sep=';', dtype=str)
 	# st.write(df_corse)
 	# Replace `20` with `2A` and `2B` for Corsica in `department` column. Using mapping from `code-postal-corse.csv`
-	df['department'] = df['department'].replace('20', np.nan)
+	df['dept_code'] = df['dept_code'].replace('20', np.nan)
 	code_to_dep = df_corse.set_index('Code_postal')['CODE_DEPT'].to_dict()
-	df['department'] = df['department'].fillna(df['postal_code'].map(code_to_dep))
-	# Removing the rows with empty `department` values as well as all that is not in the range of 1-95 + 2A + 2B
+	df['dept_code'] = df['dept_code'].fillna(df['postal_code'].map(code_to_dep))
 
 	# This will drop the rows with empty `department` values as well as all that is not in the range of 1-95 + 2A + 2B
-	mask_empty = df['department'] == ''
-	mask_not_in_range = ~df['department'].isin([str(i).zfill(2) for i in range(0, 96)] + ['2A', '2B'])
-	df = df[~(mask_empty | mask_not_in_range)]
+	mask_empty = df['dept_code'] == ''
+	mask_not_in_range = ~df['dept_code'].isin([str(i).zfill(2) for i in range(0, 96)] + ['2A', '2B'])
+	df = df[~(mask_empty | mask_not_in_range)].copy()
 
-	df['epoints'] = df.groupby('department')['department'].transform('size')
-	df = df.drop_duplicates(subset='department')
-	df = df[['department', 'epoints']]
-
+	# Load the `fr-ref-geo.csv` file to map the department codes to department names
 	df_fr_dep = pd.read_csv('data/fr-ref-geo.csv', sep=';', dtype=str)
 	# st.write(df_fr_dep)
 	dep_to_name = df_fr_dep.set_index('DEP_CODE')['DEP_NOM'].to_dict()
-	df['dept_name'] = df['department'].map(dep_to_name)
+	df['dept_name'] = df['dept_code'].map(dep_to_name)
 
+	# Extract the year from the `created_at` into `year` column and keep only the `dept_code`, `dept_name` and `year` columns in the DataFrame
+	df['year'] = df['created_at'].str.slice(0, 4)
+	df = df[['dept_code', 'dept_name', 'year']]
 	return df
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+def transform_data(df):
+	df['epoints'] = 1
+	pivot_df = pd.pivot_table(df, index=['dept_code', 'dept_name'], columns='year', aggfunc='sum', fill_value=0)
+	pivot_df.reset_index(inplace=True)
+	pivot_df.columns = ['_'.join(str(col)).strip('_') for col in pivot_df.columns.values]
+	pivot_df.columns = ['dept_code', 'dept_name', '2021', '2022', '2023', '2024']
+	pivot_df['total'] = pivot_df.iloc[:, 2:].sum(axis=1)
+	return pivot_df
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -300,23 +309,25 @@ def main():
 	st.write(f'Initislly missing values in `consolidated_code_postal` column: `{missing_values.shape[0]}` in dataset `epoints`')
 	# # # # #
 
-	# df_epoints, df_geo_ref = process_missing_postal_codes(epoints, geo_ref)
 	df_epoints = process_missing_postal_codes(epoints)
 
-	columns_to_drop = ['consolidated_code_postal']
-	df_epoints.drop(columns=columns_to_drop, inplace=True)
+	df_epoints = adding_department(df_epoints)
+	# st.write(f'Preprocessed dataset `df_epoints`, rows count: `{df_epoints.shape[0]}`')
+	# st.write(df_epoints)
 
-	df_epoints = group_by_department(df_epoints)
+	pivot_df = transform_data(df_epoints)
 
-	# Saving the preprocessed dataset to a new CSV file
-	df_epoints.to_csv('data/epoints.csv', index=False)
-	st.write(f'Preprocessed dataset saved to `data/epoints.csv`')
+	pivot_df.to_csv('data/epoints_pivot.csv', index=False)
 
 	# # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 	# # DEBUG # #
-	# st.write(f'Dataframe `df_epoints`, rows count: `{df_epoints.shape[0]}`')
-	# st.write(df_epoints.shape)
-	# st.write(df_epoints)
+	st.write(f'Pivot table `pivot_df`, rows count: `{pivot_df.shape[0]}`')
+	st.write(pivot_df)
+	st.write(f'Pivot table saved to `data/epoints_pivot.csv`')
+
+	# st.write(f'Original Dataframe `epoints`, rows count: `{epoints.shape[0]}`')
+	# st.write(epoints.shape)
+	# st.write(epoints)
 
 	# filtered_df = df_epoints[df_epoints['department'] == '']
 	# st.write(f'Filtered dataframe `df_epoints`, rows count (with '' empty string): `{filtered_df.shape[0]}`: ')

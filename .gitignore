@@ -5,6 +5,6 @@
 !/data/france_departments.geojson
 !/data/voitures.csv
 !/data/insee_code.csv
-!/data/epoints.csv
+!/data/epoints_pivot.csv
 !/data/fr-ref-geo.csv
 app_backup.py

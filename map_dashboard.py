@@ -23,16 +23,14 @@ def ft_sidebar(df):
 			This dashboard shows the amount of electric vehicles and charging points in France.
 			"""
 		)
-		# year_list =  ['All'] + sorted(df['year'].unique(), reverse=True)
-		year_list = list(df['year'].unique())[::-1]
+		year_list = [col for col in df.columns if col.isdigit()]
+		year_list.sort(reverse=True)
 		year_list.insert(0, 'All')
 		selected_year = st.radio('Select year', year_list)
-		# df = df[df['year'] == selected_year]
-
-		department_list = list(df['depart_code'].unique())[::-1]
+		
+		department_list = list(df['dept_code_name'].unique())[::-1]
 		department_list.insert(0, 'All')
 		selected_department = st.selectbox('Select department', department_list)
-		# df = df[df['depart_code'] == selected_department]
 
 	return selected_year, selected_department
 	
@@ -48,7 +46,7 @@ def create_choropleth(map, df, column, color, legend_name):
 		name=legend_name,
 		data=df,
 		# columns=['depart_code', 'log_ratio'],
-		columns=['depart_code', column],
+		columns=['dept_code', column],
 		key_on='feature.properties.code',
 		fill_color=color,
 		fill_opacity=0.7,
@@ -61,15 +59,6 @@ def create_choropleth(map, df, column, color, legend_name):
 		folium.features.GeoJsonTooltip(['nom'])
 	)
 
-def calculate_ratio(df):
-	df['num_epoints'] = df['num_epoints'].fillna(1)
-	df['num_evs'] = df['num_evs'].fillna(1)
-
-	df['ratio'] = df['num_evs'] / df['num_epoints']
-	df['ratio'] = df['ratio'].astype(int)
-
-	return df
-
 # COLOR SCHEMES:
 # 'BuGn', `BuPu`,`GnBu`,`OrRd`,`PuBu`,`PuBuGn`,`PuRd`,`RdPu`,`YlGn`,`YlGnBu`,`YlOrBr`,`YlOrRd`,
 # `Blues`, `Greens`, `Greys`, `Oranges`, `Purples`, `Reds` 
@@ -78,50 +67,46 @@ def calculate_ratio(df):
 # def render_map(df):
 def render_map(df, selected_year, selected_department):
 	if selected_year != 'All':
-		df = df[df['year'] == selected_year]
-	if selected_department != 'All':
-		df = df[df['depart_code'] == selected_department]
+		column = selected_year
+	else:
+		column = 'total'
 	
-	df = calculate_ratio(df)
-
+	if selected_department != 'All':
+		df = df[df['dept_code_name'] == selected_department]
+		# df = df[df['dept_code'] == selected_department]
+	
 	st.write(df)
-	stats = df[['num_epoints', 'num_evs', 'ratio']].describe()
-	st.write(stats)
 
 	map = folium.Map(location=[46.603354, 1.8883344], zoom_start=6, tiles='CartoDB positron', scrollWheelZoom=False)
 
-	create_choropleth(map, df, 'ratio', 'Paired', 'NUMBER of EVs per charging point')
-	create_choropleth(map, df, 'num_epoints', 'BuGn', 'Number of charging points')
-	create_choropleth(map, df, 'num_evs', 'GnBu', 'Number of electric vehicles')
+	create_choropleth(map, df, column, 'BuGn', 'Number of charging points')
 
 	folium.LayerControl().add_to(map)
 
 	folium_static(map, width=800, height=800)
 
-	total_epoints = df['num_epoints'].sum()
-	total_evs = df['num_evs'].sum()
-	ratio = total_evs / total_epoints # what if total_epoints is 0 ? < there is no way this value goes 0
+	total_epoints = df[column].sum()
 
-	return total_epoints, total_evs, ratio
+	return total_epoints
 
 def show_map(df, selected_year, selected_department):
 
-	e_points, evs, ratio = render_map(df, selected_year, selected_department)
+	e_points = render_map(df, selected_year, selected_department)
 	
-	col1, col2, col3 = st.columns(3)
+	col1 = st.columns(1)[0]
 
 	with col1:
 		st.metric("Total number of charging points", e_points)
-	with col2:
-		st.metric("Total number of electric vehicles", evs)
-	with col3:
-		st.metric("Ratio of electric vehicles per charging point", ratio)
+	# with col2:
+	# 	st.metric("Total number of electric vehicles", evs)
+	# with col3:
+	# 	st.metric("Ratio of electric vehicles per charging point", ratio)
   
 
 def main():
 	# Load the data
-	df = pd.read_csv('data/voitures_epoints.csv')
-	df = df.rename(columns={'nb_vp_rechargeables_el': 'num_evs'})
+	df = pd.read_csv('data/epoints_pivot.csv')
+	df['dept_code_name'] = df['dept_code'] + ' - ' + df['dept_name']
 
 	selecetd_year, selected_department = ft_sidebar(df)
 
