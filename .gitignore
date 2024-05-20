@@ -6,5 +6,6 @@
 !/data/voitures.csv
 !/data/insee_code.csv
 !/data/epoints_pivot.csv
+!/data/evs_pivot.csv
 !/data/fr-ref-geo.csv
 app_backup.py

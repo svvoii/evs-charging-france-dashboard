@@ -1,5 +1,10 @@
-dataset shall be placed in this directory, must be downloaded from the following link: 
+dataset shall be placed in this directory, must be downloaded from the following links (in case the files are not present in the directory yet):  
+
+Charging stations dataset:  
 https://www.data.gouv.fr/fr/datasets/fichier-consolide-des-bornes-de-recharge-pour-vehicules-electriques/
 
-Corsica postal codes:
+Corsica postal codes:  
 https://www.data.corsica/explore/dataset/code-postal-code-insee-2015/table/
+
+Electric vehicle dataset:  
+https://www.data.gouv.fr/fr/datasets/voitures-particulieres-immatriculees-par-commune-et-par-type-de-recharge-jeu-de-donnees-aaadata/

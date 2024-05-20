@@ -15,7 +15,16 @@ st.set_page_config(
 
 alt.themes.enable('dark')
 
-def ft_sidebar(df):
+# Uploading datasets
+def load_datasets():
+	epoints_df = pd.read_csv('data/epoints_pivot.csv')
+	epoints_df['dept_code_name'] = epoints_df['dept_code'] + ' - ' + epoints_df['dept_name']
+	evs_df = pd.read_csv('data/evs_pivot.csv')
+	evs_df['dept_code_name'] = evs_df['dept_code'] + ' - ' + evs_df['dept_name']
+	return epoints_df, evs_df
+
+# def ft_sidebar(df):
+def ft_sidebar(df_epoints, df_evs):
 	with st.sidebar:
 		# st.sidebar.title("Plug-in Progress")
 		st.sidebar.markdown(
@@ -23,14 +32,17 @@ def ft_sidebar(df):
 			This dashboard shows the amount of electric vehicles and charging points in France.
 			"""
 		)
-		year_list = [col for col in df.columns if col.isdigit()]
+		year_list = [col for col in df_evs.columns if col.isdigit()]
 		year_list.sort(reverse=True)
 		year_list.insert(0, 'All')
 		selected_year = st.radio('Select year', year_list)
 		
-		department_list = list(df['dept_code_name'].unique())[::-1]
-		department_list.insert(0, 'All')
-		selected_department = st.selectbox('Select department', department_list)
+		dept_list_epoints = list(df_epoints['dept_code_name'].unique())[::-1]
+		dept_list_evs = list(df_evs['dept_code_name'].unique())[::-1]
+		dept_list = list(set(dept_list_epoints + dept_list_evs))
+		dept_list.sort()
+		dept_list.insert(0, 'All')
+		selected_department = st.selectbox('Select department', dept_list)
 
 	return selected_year, selected_department
 	
@@ -65,52 +77,78 @@ def create_choropleth(map, df, column, color, legend_name):
 # `Accent`, `Dark2`, `Paired`, `Pastel1`, `Pastel2`, `Set1`, `Set2`, `Set3`
 
 # def render_map(df):
-def render_map(df, selected_year, selected_department):
+# def render_map(df, selected_year, selected_department):
+def render_map(df_epoints, df_evs, selected_year, selected_department):
 	if selected_year != 'All':
 		column = selected_year
 	else:
 		column = 'total'
 	
 	if selected_department != 'All':
-		df = df[df['dept_code_name'] == selected_department]
-		# df = df[df['dept_code'] == selected_department]
+		df_epoints = df_epoints[df_epoints['dept_code_name'] == selected_department]
+		df_evs = df_evs[df_evs['dept_code_name'] == selected_department]
+		# df = df[df['dept_code_name'] == selected_department]
 	
-	st.write(df)
+	# st.write(df)
 
 	map = folium.Map(location=[46.603354, 1.8883344], zoom_start=6, tiles='CartoDB positron', scrollWheelZoom=False)
 
-	create_choropleth(map, df, column, 'BuGn', 'Number of charging points')
+	if column in df_epoints.columns:
+		create_choropleth(map, df_epoints, column, 'BuGn', 'Number of charging points')
+	if column in df_evs.columns:
+		create_choropleth(map, df_evs, column, 'OrRd', 'Number of electric vehicles')
 
 	folium.LayerControl().add_to(map)
 
 	folium_static(map, width=800, height=800)
 
-	total_epoints = df[column].sum()
+	total_epoints = df_epoints[column].sum() if column in df_epoints.columns else 0
+	total_evs = df_evs[column].sum() if column in df_evs.columns else 0
 
-	return total_epoints
+	return total_epoints, total_evs
 
-def show_map(df, selected_year, selected_department):
+# def show_map(df, selected_year, selected_department):
+def show_map(df_epoints, df_evs, selected_year, selected_department):
 
-	e_points = render_map(df, selected_year, selected_department)
+	e_points, evs = render_map(df_epoints, df_evs, selected_year, selected_department)
 	
-	col1 = st.columns(1)[0]
+	col1, col2 = st.columns(2)
 
 	with col1:
 		st.metric("Total number of charging points", e_points)
-	# with col2:
-	# 	st.metric("Total number of electric vehicles", evs)
+	with col2:
+		st.metric("Total number of electric vehicles", evs)
 	# with col3:
 	# 	st.metric("Ratio of electric vehicles per charging point", ratio)
   
 
 def main():
 	# Load the data
-	df = pd.read_csv('data/epoints_pivot.csv')
-	df['dept_code_name'] = df['dept_code'] + ' - ' + df['dept_name']
+	df_epoints, df_evs = load_datasets()
 
-	selecetd_year, selected_department = ft_sidebar(df)
+	col = st.columns((1, 5, 2), gap='medium')
 
-	show_map(df, selecetd_year, selected_department)	
+	selecetd_year, selected_department = ft_sidebar(df_epoints, df_evs)
+
+	with col[0]:
+		st.write("Some key metrics here")
+		# st.metric("Total number of charging points", df_epoints['total'].sum())
+		# st.metric(lable=selected_department, value=df_epoints['total'].sum(), delta=df_evs['total'].sum())
+
+	with col[1]:
+		show_map(df_epoints, df_evs, selecetd_year, selected_department)	
+
+		# DEBUG #
+		st.write(df_epoints.shape)
+		st.write(df_epoints)
+
+		st.write(df_evs.shape)
+		st.write(df_evs)
+		# # # # #
+	
+	with col[2]:
+		st.write("This is a third column")
+
 
 if __name__ == "__main__":
     main()

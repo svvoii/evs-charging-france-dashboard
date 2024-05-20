@@ -9,8 +9,14 @@
 # 3. Process the missing postal codes `process_missing_postal_codes()`:
 #	- Extract postal code from `adresse_station` string and store it in `postal_code`, new column `extract_postal_code_from_str()`
 #	- Fill in the missing postal codes from the `geo_ref` DataFrame based on the commune name `add_postal_code()`
-#	- Some manual fixes (about 60 rows with 9 unique locations) for the remaining missing postal codes `postal_code_manual_fixes()`
-# 4. Drop the columns that are no longer needed `columns_to_drop()` and group the dataset by department `group_by_department()`
+#	- Some manual fixes (about 600 rows with around 150 unique locations) for the remaining missing postal codes `postal_code_manual_fixes()`
+# 4. Grouping the dataset by department in `adding_department()`
+#	- Fixing the postal codes for Corsica (20) to 2A and 2B`
+#	- Drop the rows with empty `department` values as well as all that is not in the range of 1-95 + 2A + 2B
+#	- Mappping the department codes to department names `dep_to_name`
+#	- Saving dataset with following columns: ('dept_code', 'dept_name', 'year')
+# 5. Transforming the dataset into a pivot table withthe follwong columns:
+# 	['dept_code', 'dept_name', '2021', '2022', '2023', '2024', 'total']
 
 import streamlit as st
 import pandas as pd
@@ -288,10 +294,11 @@ def adding_department(df):
 
 def transform_data(df):
 	df['epoints'] = 1
-	pivot_df = pd.pivot_table(df, index=['dept_code', 'dept_name'], columns='year', aggfunc='sum', fill_value=0)
-	pivot_df.reset_index(inplace=True)
-	pivot_df.columns = ['_'.join(str(col)).strip('_') for col in pivot_df.columns.values]
-	pivot_df.columns = ['dept_code', 'dept_name', '2021', '2022', '2023', '2024']
+	pivot_df = pd.pivot_table(df, index=['dept_code', 'dept_name'], columns='year', values='epoints', aggfunc='sum', fill_value=0)
+	# pivot_df = pd.pivot_table(df, index=['dept_code', 'dept_name'], columns='year', aggfunc='sum', fill_value=0)
+	# pivot_df.reset_index(inplace=True)
+	# pivot_df.columns = ['_'.join(str(col)).strip('_') for col in pivot_df.columns.values]
+	# pivot_df.columns = ['dept_code', 'dept_name', '2021', '2022', '2023', '2024']
 	pivot_df['total'] = pivot_df.iloc[:, 2:].sum(axis=1)
 	return pivot_df
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -317,7 +324,7 @@ def main():
 
 	pivot_df = transform_data(df_epoints)
 
-	pivot_df.to_csv('data/epoints_pivot.csv', index=False)
+	pivot_df.to_csv('data/epoints_pivot.csv')
 
 	# # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 	# # DEBUG # #
