@@ -299,7 +299,8 @@ def transform_data(df):
 	# pivot_df.reset_index(inplace=True)
 	# pivot_df.columns = ['_'.join(str(col)).strip('_') for col in pivot_df.columns.values]
 	# pivot_df.columns = ['dept_code', 'dept_name', '2021', '2022', '2023', '2024']
-	pivot_df['total'] = pivot_df.iloc[:, 2:].sum(axis=1)
+	# pivot_df['total'] = pivot_df.iloc[:, 2:].sum(axis=1)
+	pivot_df['total'] = pivot_df[['2021', '2022', '2023', '2024']].sum(axis=1)
 	return pivot_df
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -326,17 +327,24 @@ def main():
 
 	pivot_df.to_csv('data/epoints_pivot.csv')
 
+	# Saving the cumulative sum of the pivot table as well
+	pivot_df_cumsum = pivot_df.loc[:, '2021':'2024'].cumsum(axis=1)
+	pivot_df_cumsum.to_csv('data/epoints_pivot_cumsum.csv')
+
 	# # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 	# # DEBUG # #
 	st.write(f'Pivot table `pivot_df`, rows count: `{pivot_df.shape[0]}`')
 	st.write(pivot_df)
 	st.write(f'Pivot table saved to `data/epoints_pivot.csv`')
 
+	st.write(f'Pivot table `pivot_df_cumsum`, rows count: `{pivot_df_cumsum.shape[0]}`')
+	st.write(pivot_df_cumsum)
+	st.write(f'Pivot table saved to `data/epoints_pivot_cumsum.csv`')
+
 	# st.write(f'Original Dataframe `epoints`, rows count: `{epoints.shape[0]}`')
 	# st.write(epoints.shape)
 	# st.write(epoints)
 
-	# filtered_df = df_epoints[df_epoints['department'] == '']
 	# st.write(f'Filtered dataframe `df_epoints`, rows count (with '' empty string): `{filtered_df.shape[0]}`: ')
 	# if filtered_df.shape[0] > 0:
 	# 	st.write(filtered_df)

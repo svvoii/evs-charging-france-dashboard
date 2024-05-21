@@ -17,10 +17,15 @@ alt.themes.enable('dark')
 
 # Uploading datasets
 def load_datasets():
-	epoints_df = pd.read_csv('data/epoints_pivot.csv')
+	# epoints_df = pd.read_csv('data/epoints_pivot.csv')
+	epoints_df = pd.read_csv('data/epoints_pivot_cumsum.csv')
 	epoints_df['dept_code_name'] = epoints_df['dept_code'] + ' - ' + epoints_df['dept_name']
-	evs_df = pd.read_csv('data/evs_pivot.csv')
+	epoints_df.insert(2, '2020', 0)
+
+	# evs_df = pd.read_csv('data/evs_pivot.csv')
+	evs_df = pd.read_csv('data/evs_pivot_cumsum.csv')
 	evs_df['dept_code_name'] = evs_df['dept_code'] + ' - ' + evs_df['dept_name']
+
 	return epoints_df, evs_df
 
 # def ft_sidebar(df):
@@ -32,26 +37,23 @@ def ft_sidebar(df_epoints, df_evs):
 			This dashboard shows the amount of electric vehicles and charging points in France.
 			"""
 		)
-		year_list = [col for col in df_evs.columns if col.isdigit()]
-		year_list.sort(reverse=True)
-		year_list.insert(0, 'All')
+		year_list = ['2024', '2023', '2022', '2021', '2020']
 		selected_year = st.radio('Select year', year_list)
 		
-		dept_list_epoints = list(df_epoints['dept_code_name'].unique())[::-1]
-		dept_list_evs = list(df_evs['dept_code_name'].unique())[::-1]
-		dept_list = list(set(dept_list_epoints + dept_list_evs))
-		dept_list.sort()
-		dept_list.insert(0, 'All')
+		dept_list = list(df_epoints['dept_code_name'].unique())
+		dept_list.insert(0, 'All Departments')
 		selected_department = st.selectbox('Select department', dept_list)
+
+		# DEBUG #
+		# st.write(f"dept_list: {dept_list}")
+		# st.write(f"selected_department: {selected_department}")
+		# # # # #
 
 	return selected_year, selected_department
 	
 
 # def create_choropleth(map, df, column, color, legend_name):
 def create_choropleth(map, df, column, color, legend_name):
-	# bins = list(df[column].quantile([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]))
-	# bins = list(np.linspace(df[column].min(), df[column].max(), 10))
-	# st.write(bins)
 
 	choropleth = folium.Choropleth(
 		geo_data="data/france_departments.geojson",
@@ -76,78 +78,80 @@ def create_choropleth(map, df, column, color, legend_name):
 # `Blues`, `Greens`, `Greys`, `Oranges`, `Purples`, `Reds` 
 # `Accent`, `Dark2`, `Paired`, `Pastel1`, `Pastel2`, `Set1`, `Set2`, `Set3`
 
-# def render_map(df):
-# def render_map(df, selected_year, selected_department):
-def render_map(df_epoints, df_evs, selected_year, selected_department):
-	if selected_year != 'All':
-		column = selected_year
-	else:
-		column = 'total'
-	
-	if selected_department != 'All':
-		df_epoints = df_epoints[df_epoints['dept_code_name'] == selected_department]
-		df_evs = df_evs[df_evs['dept_code_name'] == selected_department]
-		# df = df[df['dept_code_name'] == selected_department]
-	
-	# st.write(df)
+def render_map(df_epoints, df_evs, selected_year):
 
-	map = folium.Map(location=[46.603354, 1.8883344], zoom_start=6, tiles='CartoDB positron', scrollWheelZoom=False)
+	map = folium.Map(
+    	location=[46.603354, 1.8883344], 
+    	zoom_start=6, 
+    	tiles='CartoDB positron', 
+    	scrollWheelZoom=False,
+		control_scale=False
+	)
 
-	if column in df_epoints.columns:
-		create_choropleth(map, df_epoints, column, 'BuGn', 'Number of charging points')
-	if column in df_evs.columns:
-		create_choropleth(map, df_evs, column, 'OrRd', 'Number of electric vehicles')
+	df_ratio = df_epoints.copy()
+	df_ratio[selected_year] = df_ratio[selected_year].replace([np.inf, -np.inf], np.nan)
+
+	# st.write(f"Ratio shape: {df_ratio.shape}")
+	# st.write(df_ratio)
+
+	create_choropleth(map, df_ratio, selected_year, 'YlOrRd', 'Electric Vehicles per Charging Point')
+	# create_choropleth(map, df_epoints, selected_year, 'BuGn', 'Number of charging points')
+	# create_choropleth(map, df_evs, selected_year, 'OrRd', 'Number of electric vehicles')
 
 	folium.LayerControl().add_to(map)
+	folium_static(map, width=800, height=900)
 
-	folium_static(map, width=800, height=800)
-
-	total_epoints = df_epoints[column].sum() if column in df_epoints.columns else 0
-	total_evs = df_evs[column].sum() if column in df_evs.columns else 0
-
-	return total_epoints, total_evs
-
-# def show_map(df, selected_year, selected_department):
-def show_map(df_epoints, df_evs, selected_year, selected_department):
-
-	e_points, evs = render_map(df_epoints, df_evs, selected_year, selected_department)
-	
-	col1, col2 = st.columns(2)
-
-	with col1:
-		st.metric("Total number of charging points", e_points)
-	with col2:
-		st.metric("Total number of electric vehicles", evs)
-	# with col3:
-	# 	st.metric("Ratio of electric vehicles per charging point", ratio)
-  
 
 def main():
 	# Load the data
 	df_epoints, df_evs = load_datasets()
 
-	col = st.columns((1, 5, 2), gap='medium')
+	col = st.columns((5, 3), gap='small')
 
-	selecetd_year, selected_department = ft_sidebar(df_epoints, df_evs)
+	selected_year, selected_department = ft_sidebar(df_epoints, df_evs)
+
+	if selected_department != 'All Departments':
+		df_epoints = df_epoints[df_epoints['dept_code_name'] == selected_department]
+		df_evs = df_evs[df_evs['dept_code_name'] == selected_department]
+	
+	epoints = df_epoints[selected_year].sum() if selected_year in df_epoints.columns else 0
+	evs = df_evs[selected_year].sum() if selected_year in df_evs.columns else 0
 
 	with col[0]:
-		st.write("Some key metrics here")
-		# st.metric("Total number of charging points", df_epoints['total'].sum())
-		# st.metric(lable=selected_department, value=df_epoints['total'].sum(), delta=df_evs['total'].sum())
+		mettric_col = st.columns(3)
+		with mettric_col[0]:
+			st.write(f"Charging Points")
+			st.metric(label=selected_department, value='{:,}'.format(epoints), delta=0)
+		with mettric_col[1]:
+			st.write(f"Electric Vehicles")
+			st.metric(label=selected_department, value='{:,}'.format(evs), delta=0)
+		with mettric_col[2]:
+			st.write(f"Vehicles per charging point")
+			# ratio = int(evs/epoints)
+			ratio = int(evs/epoints) if epoints != 0 else 0
+			st.metric(label=selected_department, value=f'{ratio}', delta=0)
+
+		render_map(df_epoints, df_evs, selected_year)
 
 	with col[1]:
-		show_map(df_epoints, df_evs, selecetd_year, selected_department)	
+		st.write("Cumulative Charging Points")
+		df_epoints_cum = pd.DataFrame(df_epoints.sum(numeric_only=True)).T
+		st.write(df_epoints_cum)
+		st.line_chart(df_epoints_cum.sum())
 
-		# DEBUG #
-		st.write(df_epoints.shape)
-		st.write(df_epoints)
+		st.write("Cumulative Electric Vehicles")
+		df_evs_cum = pd.DataFrame(df_evs.sum(numeric_only=True)).T
+		st.write(df_evs_cum)
+		st.line_chart(df_evs_cum.sum())
 
-		st.write(df_evs.shape)
-		st.write(df_evs)
-		# # # # #
+	# DEBUG #
+	st.write(df_epoints.shape)
+	st.write(df_epoints)
+
+	st.write(df_evs.shape)
+	st.write(df_evs)
+	# # # # #
 	
-	with col[2]:
-		st.write("This is a third column")
 
 
 if __name__ == "__main__":

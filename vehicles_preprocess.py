@@ -48,7 +48,8 @@ def adding_department(df):
 def transform_to_pivot(df):
 	df['nb_evs'] = pd.to_numeric(df['nb_evs'], errors='coerce')
 	pivot_df = pd.pivot_table(df, index=['dept_code', 'dept_name'], columns='year', values='nb_evs', aggfunc='sum', fill_value=0)
-	pivot_df['total'] = pivot_df.iloc[:, 2:].sum(axis=1)
+	# pivot_df['total'] = pivot_df.iloc[:, 2:].sum(axis=1)
+	pivot_df['total'] = pivot_df.loc[:, '2020':'2024'].sum(axis=1)
 
 	return pivot_df
 
@@ -62,6 +63,10 @@ def main():
 
 	df_pivot.to_csv('data/evs_pivot.csv')
 
+	# Saving the cumulative sum of the number of EVs as well
+	df_pivot_cumsum = df_pivot.loc[:, '2020':'2024'].cumsum(axis=1)
+	df_pivot_cumsum.to_csv('data/evs_pivot_cumsum.csv')
+
 	# DEBUG #
 	# st.write(evs_df.shape)
 	# st.write(evs_df)
@@ -73,6 +78,10 @@ def main():
 	st.write(df_pivot.shape)
 	st.write(df_pivot)
 	st.write(f'The final dataset has been saved as `evs_pivot.csv` in the `data` folder')
+
+	st.write(df_pivot_cumsum.shape)
+	st.write(df_pivot_cumsum)
+	st.write(f'The final dataset has been saved as `evs_pivot_cumsum.csv` in the `data` folder')
 	# # # # #
 
 

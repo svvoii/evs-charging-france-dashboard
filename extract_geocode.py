@@ -1,6 +1,10 @@
+# !!!!!!!!!!!!!!!!! CAREFUL !!!!!!!!!!!!!!!!!
 # This script is used to get the location data of the given latitude and longitude using Google Maps API.
 # The function get_location_data takes a dataframe as input and returns 
 # a new dataframe with the columns latitude, longitude, and location_data.
+# IT IS A PAID API 
+# !!!!!!!!!!!!!!!!! CAREFUL !!!!!!!!!!!!!!!!!
+
 
 import requests
 import pandas as pd
