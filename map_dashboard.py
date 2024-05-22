@@ -4,6 +4,7 @@ import streamlit as st
 import folium
 from streamlit_folium import folium_static
 import altair as alt
+import json
 
 # Page configuration
 st.set_page_config(
@@ -34,31 +35,48 @@ def ft_sidebar(df_epoints, df_evs):
 		# st.sidebar.title("Plug-in Progress")
 		st.sidebar.markdown(
 			"""
-			This dashboard shows the amount of electric vehicles and charging points in France.
+			Ce tableau de bord montre le nombre de véhicules électriques et de points de charge en France métropolitaine.
 			"""
 		)
-		year_list = ['2024', '2023', '2022', '2021', '2020']
-		selected_year = st.radio('Select year', year_list)
 		
 		dept_list = list(df_epoints['dept_code_name'].unique())
 		dept_list.insert(0, 'All Departments')
 		selected_department = st.selectbox('Select department', dept_list)
 
-		# DEBUG #
-		# st.write(f"dept_list: {dept_list}")
-		# st.write(f"selected_department: {selected_department}")
-		# # # # #
+		year_list = ['2024', '2023', '2022', '2021', '2020']
+		selected_year = st.radio('Select year', year_list)
 
 	return selected_year, selected_department
 	
 
 # def create_choropleth(map, df, column, color, legend_name):
-def create_choropleth(map, df, column, color, legend_name):
+def create_choropleth(map, df_points, df_evs, column, color, legend_name):
+	# Converting the dataframe to a dictionarya to add a value to the GeoJSON file to use withthe tooltip
+	df_points_dict = df_points.set_index('dept_code')[column].to_dict()
+	df_evs_dict = df_evs.set_index('dept_code')[column].to_dict()
+
+	with open('data/france_departments.geojson') as f:
+		geojson_dict = json.load(f)
+	
+	for feature in geojson_dict['features']:
+		feature['properties']['e_charge'] = df_points_dict.get(feature['properties']['code'], 'N/A')
+		feature['properties']['vehicles'] = df_evs_dict.get(feature['properties']['code'], 'N/A')
+		evs = df_evs_dict.get(feature['properties']['code'], 'N/A')
+		points = df_points_dict.get(feature['properties']['code'], 'N/A')
+		ratio = int(evs / points) if points != 0 else -1
+		# ratio = int(df_evs_dict.get(feature['properties']['code'], 'N/A') / df_points_dict.get(feature['properties']['code'], 'N/A'))
+		feature['properties']['vhs_per_epoint'] = ratio
+	
+	# Creating df with ratios of vehicles per charging point as values..
+	df_ratio = df_points.copy()
+	df_ratio[column] = (df_evs[column] / df_points[column]).fillna(0) # vehicles per charging point
+	df_ratio = df_ratio[['dept_code', 'dept_code_name', column]]
 
 	choropleth = folium.Choropleth(
-		geo_data="data/france_departments.geojson",
+		# geo_data="data/france_departments.geojson",
+		geo_data=geojson_dict,
 		name=legend_name,
-		data=df,
+		data=df_ratio,
 		# columns=['depart_code', 'log_ratio'],
 		columns=['dept_code', column],
 		key_on='feature.properties.code',
@@ -69,8 +87,13 @@ def create_choropleth(map, df, column, color, legend_name):
 		# bins=bins,
 	).add_to(map)
 
+	# DEBUG #
+	st.write(f"df_ratio: {df_ratio.shape}")
+	st.write(df_ratio)
+	# # # # #
+
 	choropleth.geojson.add_child(
-		folium.features.GeoJsonTooltip(['nom'])
+		folium.features.GeoJsonTooltip(['code', 'nom', 'vhs_per_epoint', 'vehicles', 'e_charge'], aliases=['départ. code: ', 'département: ', 'vé par borne: ', 'véhicules él.: ', 'bornes: '])
 	)
 
 # COLOR SCHEMES:
@@ -88,18 +111,18 @@ def render_map(df_epoints, df_evs, selected_year):
 		control_scale=False
 	)
 
-	df_ratio = df_epoints.copy()
-	df_ratio[selected_year] = df_ratio[selected_year].replace([np.inf, -np.inf], np.nan)
+	# df_ratio = df_epoints.copy()
+	# df_ratio[selected_year] = df_ratio[selected_year].replace([np.inf, -np.inf], np.nan)
 
 	# st.write(f"Ratio shape: {df_ratio.shape}")
 	# st.write(df_ratio)
 
-	create_choropleth(map, df_ratio, selected_year, 'YlOrRd', 'Electric Vehicles per Charging Point')
+	create_choropleth(map, df_epoints, df_evs, selected_year, 'Set3', 'Véhicules électriques par borne de recharge')
 	# create_choropleth(map, df_epoints, selected_year, 'BuGn', 'Number of charging points')
 	# create_choropleth(map, df_evs, selected_year, 'OrRd', 'Number of electric vehicles')
 
 	folium.LayerControl().add_to(map)
-	folium_static(map, width=800, height=900)
+	folium_static(map, width=800, height=800)
 
 
 def main():
