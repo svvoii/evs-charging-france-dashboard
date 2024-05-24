@@ -37,12 +37,24 @@ def load_datasets():
 	evs_cum = pd.read_csv('data/evs_pivot_cumsum.csv')
 	evs_cum['dept_code_name'] = evs_cum['dept_code'] + ' - ' + evs_cum['dept_name']
 
+	# Calculate the ratio of electric vehicles per charging point (actual and cumulative, below)
+	# ratio_actual = evs_actual.copy()
+	# for column in evs_actual.columns:
+	# 	if column not in ['dept_code', 'dept_name', 'dept_code_name']:
+	# 		ratio_actual[column] = evs_actual[column].div(epoints_actual[column]).replace([np.inf, -np.inf], np.nan).fillna(0).astype(int)
+
 	ratio_cum = evs_cum.copy()
 	for column in evs_cum.columns:
 		if column not in ['dept_code', 'dept_name', 'dept_code_name']:
 			ratio_cum[column] = evs_cum[column].div(epoints_cum[column]).replace([np.inf, -np.inf], np.nan).fillna(0).astype(int)
 	
 	# DEBUG #
+	# st.write(f"epoints_actual shape: {epoints_actual.shape}")
+	# st.write(epoints_actual)
+	# st.write(f"evs_actual shape: {evs_actual.shape}")
+	# st.write(evs_actual)
+	# st.write(f"ratio_actual shape: {ratio_actual.shape}")
+	# st.write(ratio_actual)
 	# st.write(f"ratio_cum shape: {ratio_cum.shape}")
 	# st.write(ratio_cum)
 	# # # # #
@@ -73,7 +85,7 @@ def ft_sidebar(df_epoints, df_evs):
 		# selected_year = st.radio('Select year', year_list)
 		
 		dept_list = list(df_epoints['dept_code_name'].unique())
-		dept_list.insert(0, 'All Departments')
+		dept_list.insert(0, 'France entière')
 		selected_department = st.radio(':fr: Select department :fr:', dept_list)
 		# selected_department = st.selectbox(':fr: Select department :fr:', dept_list)
 
@@ -138,7 +150,9 @@ def render_map(df_epoints, df_evs, ratio_cum, selected_year):
 
 	folium.LayerControl().add_to(map)
 	folium_static(map, width=800, height=800)
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+@st.cache_data
 def plot_barchart(df, title):
 	years = ['2020', '2021', '2022', '2023', '2024']
 	data = []
@@ -147,7 +161,28 @@ def plot_barchart(df, title):
 	fig = go.Figure(data=data)
 	fig.update_layout(barmode='stack', title=title)
 	st.plotly_chart(fig, use_container_width=True, height=600)
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+# This function calculates the change in values between the selected year and the previous year
+def calculate_delta(df_epoints_cum, df_evs_cum, selected_year):
+	# Calculating the values for the selected year
+	epoints_current = df_epoints_cum[selected_year].sum()
+	evs_current = df_evs_cum[selected_year].sum()
+	ratio_current = int(evs_current/epoints_current) if epoints_current != 0 else evs_current
+
+	# Calculating the values for the previous year
+	previous_year = str(int(selected_year) - 1)
+	epoints_previous = df_epoints_cum[previous_year].sum() if previous_year in df_epoints_cum.columns else 0
+	evs_previous = df_evs_cum[previous_year].sum() if previous_year in df_evs_cum.columns else 0
+	ratio_previous = int(evs_previous/epoints_previous) if epoints_previous != 0 else evs_previous
+
+	# Calculating the delta between the selected year and the previous year
+	delta_epoints = epoints_current - epoints_previous
+	delta_evs = evs_current - evs_previous
+	delta_ratio = ratio_current - ratio_previous
+
+	return epoints_current, evs_current, ratio_current, delta_epoints, delta_evs, delta_ratio
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -162,34 +197,33 @@ def main():
 
 	selected_year, selected_department = ft_sidebar(df_epoints_cum, df_evs_cum)
 
-	plot_barchart(df_epoints, 'Bornes de recharge par département, cumulatif.')
+	plot_barchart(df_epoints, 'Bornes de recharge par département, cumulatif :')
+	plot_barchart(df_evs, 'Véhicules électriques par département, cumulatif :')
 
-	if selected_department != 'All Departments':
+	if selected_department != 'France entière':
 		df_epoints_cum = df_epoints_cum[df_epoints_cum['dept_code_name'] == selected_department]
 		df_evs_cum = df_evs_cum[df_evs_cum['dept_code_name'] == selected_department]
 		df_ratio_cum = df_ratio_cum[df_ratio_cum['dept_code_name'] == selected_department]
 	
-	epoints = df_epoints_cum[selected_year].sum()
-	evs = df_evs_cum[selected_year].sum()
-	ratio = int(evs/epoints) if epoints != 0 else evs
+	# Calculating the delta between the selected year and the previous year
+	epoints_current, evs_current, ratio_current, delta_epoints, delta_evs, delta_ratio = calculate_delta(df_epoints_cum, df_evs_cum, selected_year)
 
-	st.header("Véhicules électriques par borne de rechargei cumulatif:")
+	st.header("Véhicules électriques par borne de rechargei cumulatif :")
 
 	mettric_col = st.columns(3)
 	with mettric_col[0]:
-		st.markdown("### Bornes de recharge")
-		st.metric(label=selected_department, value='{:,}'.format(epoints), delta=0)
+		st.markdown("### VÉ par borne")
+		st.metric(label=selected_department, value='{:,}'.format(ratio_current), delta='{:}'.format(int(delta_ratio)), delta_color='inverse')
 	with mettric_col[1]:
 		st.markdown(f"### Véhicules électriques")
-		st.metric(label=selected_department, value='{:,}'.format(evs), delta=0)
+		st.metric(label=selected_department, value='{:,}'.format(evs_current), delta='{:,}'.format(int(delta_evs)))
 	with mettric_col[2]:
-		st.markdown("### VÉ par borne")
-		st.metric(label=selected_department, value='{:,}'.format(ratio), delta=0)
+		st.markdown("### Bornes de recharge")
+		st.metric(label=selected_department, value='{:,}'.format(epoints_current), delta='{:,}'.format(int(delta_epoints)))
 
 	render_map(df_epoints_cum, df_evs_cum, df_ratio_cum, selected_year)
 
-	st.header("Bornes de recharge")
-
+	# st.header("Bornes de recharge")
 
 	# st.write("Cumulative Charging Points")
 	# df_epoints_cum = pd.DataFrame(df_epoints.sum(numeric_only=True)).T
@@ -203,27 +237,23 @@ def main():
 
 	# df_chart_epoints = df_epoints[['dept_code', selected_year]].copy()
 	# st.bar_chart(df_chart_epoints.set_index('dept_code'))
-	st.bar_chart(data=df_epoints, x='dept_code', y=selected_year, color="#008000", width=0, height=0, use_container_width=True)
+	# st.bar_chart(data=df_epoints, x='dept_code', y=selected_year, color="#008000", width=0, height=0, use_container_width=True)
 
 	
 
 
 	# DEBUG #
-	st.write(df_epoints.shape)
-	st.write(df_epoints)
+	# st.write(df_epoints.shape)
+	# st.write(df_epoints)
 
-	st.write(df_evs.shape)
-	st.write(df_evs)
+	# st.write(df_evs.shape)
+	# st.write(df_evs)
 
-	st.write(df_ratio_cum.shape)
-	st.write(df_ratio_cum)
+	# st.write(df_ratio_cum.shape)
+	# st.write(df_ratio_cum)
 	# # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-	
-
 
 if __name__ == "__main__":
     main()
-
-# Calculate delta between years !!!
