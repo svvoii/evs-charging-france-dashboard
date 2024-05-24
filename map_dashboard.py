@@ -30,55 +30,24 @@ def load_datasets():
 	epoints_cum['dept_code_name'] = epoints_cum['dept_code'] + ' - ' + epoints_cum['dept_name']
 	epoints_cum.insert(2, '2020', 0)
 
-	# evs_cum = pd.read_csv('data/evs_pivot.csv')
 	evs_actual = pd.read_csv('data/evs_pivot.csv')
 	evs_actual['dept_code_name'] = evs_actual['dept_code'] + ' - ' + evs_actual['dept_name']
 
 	evs_cum = pd.read_csv('data/evs_pivot_cumsum.csv')
 	evs_cum['dept_code_name'] = evs_cum['dept_code'] + ' - ' + evs_cum['dept_name']
 
-	# Calculate the ratio of electric vehicles per charging point (actual and cumulative, below)
-	# ratio_actual = evs_actual.copy()
-	# for column in evs_actual.columns:
-	# 	if column not in ['dept_code', 'dept_name', 'dept_code_name']:
-	# 		ratio_actual[column] = evs_actual[column].div(epoints_actual[column]).replace([np.inf, -np.inf], np.nan).fillna(0).astype(int)
-
+	# Calculating the ratio of electric vehicles per charging point as the new dataframe
 	ratio_cum = evs_cum.copy()
 	for column in evs_cum.columns:
 		if column not in ['dept_code', 'dept_name', 'dept_code_name']:
 			ratio_cum[column] = evs_cum[column].div(epoints_cum[column]).replace([np.inf, -np.inf], np.nan).fillna(0).astype(int)
 	
-	# DEBUG #
-	# st.write(f"epoints_actual shape: {epoints_actual.shape}")
-	# st.write(epoints_actual)
-	# st.write(f"evs_actual shape: {evs_actual.shape}")
-	# st.write(evs_actual)
-	# st.write(f"ratio_actual shape: {ratio_actual.shape}")
-	# st.write(ratio_actual)
-	# st.write(f"ratio_cum shape: {ratio_cum.shape}")
-	# st.write(ratio_cum)
-	# # # # #
 	return epoints_actual, evs_actual, epoints_cum, evs_cum, ratio_cum
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # def ft_sidebar(df):
 def ft_sidebar(df_epoints, df_evs):
 	with st.sidebar:
-		# st.sidebar.header("Ce tableau de bord montre le nombre de véhicules électriques et de points de charge en France métropolitaine.")
-		# st.title("🇫🇷, :fr:")
-		# st.title("🔋, :battery:")
-		# st.title("🔌, :electric_plug:")
-		# st.title("🚗, :car:")
-		# st.title("🚙, \U0001F699")
-		# st.title("⚡, :zap:")
-		# st.title("Ce Dashboard montre le nombre de véhicules électriques et de points de charge en France métropolitaine.")
-
-		# st.sidebar.markdown(
-		# 	"""
-		# 	# Ce tableau de bord montre le nombre de véhicules électriques et de points de charge en France métropolitaine.
-		# 	"""
-		# )
-
 		year_list = ['2024', '2023', '2022', '2021', '2020']
 		selected_year = st.selectbox('Select year', year_list)
 		# year_list = ['2020', '2021', '2022', '2023', '2024']
@@ -108,24 +77,16 @@ def create_choropleth(map, df_points, df_evs, ratio_cum, column, color, legend_n
 		feature['properties']['ratio'] = df_ratio_cum_dict.get(feature['properties']['code'], 'N/A')
 	
 	choropleth = folium.Choropleth(
-		# geo_data="data/france_departments.geojson",
 		geo_data=geojson_dict,
 		name=legend_name,
 		data=ratio_cum,
-		# columns=['depart_code', 'log_ratio'],
 		columns=['dept_code', column],
 		key_on='feature.properties.code',
 		fill_color=color,
 		fill_opacity=0.7,
 		line_opacity=0.2,
 		legend_name=legend_name,
-		# bins=bins,
 	).add_to(map)
-
-	# DEBUG #
-	# st.write(f"df_ratio_cum: {df_ratio_cum.shape}")
-	# st.write(df_ratio_cum)
-	# # # # #
 
 	choropleth.geojson.add_child(
 		folium.features.GeoJsonTooltip(['code', 'nom', 'ratio', 'vehicles', 'e_charge'], aliases=['départ. code: ', 'département: ', 'vé par départ: ', 'véhicules él.: ', 'bornes: '])
@@ -187,7 +148,6 @@ def calculate_delta(df_epoints_cum, df_evs_cum, selected_year):
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-
 def main():
 	# Load the data
 	df_epoints, df_evs, df_epoints_cum, df_evs_cum, df_ratio_cum = load_datasets()
@@ -223,37 +183,20 @@ def main():
 
 	render_map(df_epoints_cum, df_evs_cum, df_ratio_cum, selected_year)
 
-	# st.header("Bornes de recharge")
 
-	# st.write("Cumulative Charging Points")
-	# df_epoints_cum = pd.DataFrame(df_epoints.sum(numeric_only=True)).T
-	# st.write(df_epoints_cum)
-	# st.line_chart(df_epoints_cum.sum())
-
-	# st.write("Cumulative Electric Vehicles")
-	# df_evs_cum = pd.DataFrame(df_evs.sum(numeric_only=True)).T
-	# st.write(df_evs_cum)
-	# st.line_chart(df_evs_cum.sum())
-
-	# df_chart_epoints = df_epoints[['dept_code', selected_year]].copy()
-	# st.bar_chart(df_chart_epoints.set_index('dept_code'))
-	# st.bar_chart(data=df_epoints, x='dept_code', y=selected_year, color="#008000", width=0, height=0, use_container_width=True)
-
-	
-
-
-	# DEBUG #
-	# st.write(df_epoints.shape)
-	# st.write(df_epoints)
-
-	# st.write(df_evs.shape)
-	# st.write(df_evs)
-
-	# st.write(df_ratio_cum.shape)
-	# st.write(df_ratio_cum)
-	# # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 if __name__ == "__main__":
     main()
+
+# Saving some emojis
+# st.header("Ce tableau de bord montre le nombre de véhicules électriques et de points de charge en France métropolitaine.")
+# st.title("🇫🇷, :fr:")
+# st.title("🔋, :battery:")
+# st.title("🔌, :electric_plug:")
+# st.title("🚗, :car:")
+# st.title("🚙, \U0001F699")
+# st.title("⚡, :zap:")
+# st.title("Ce Dashboard montre le nombre de véhicules électriques et de points de charge en France métropolitaine.")
+
