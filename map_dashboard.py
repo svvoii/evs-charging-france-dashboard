@@ -48,8 +48,10 @@ def load_datasets():
 # def ft_sidebar(df):
 def ft_sidebar(df_epoints, df_evs):
 	with st.sidebar:
-		year_list = ['2024', '2023', '2022', '2021', '2020']
-		selected_year = st.selectbox('Select year', year_list)
+		# year_list = ['2024', '2023', '2022', '2021', '2020']
+		# selected_year = st.selectbox('Select year', year_list)
+		year_list = [2024, 2023, 2022, 2021, 2020]
+		selected_year = str(st.slider('Select year', min(year_list), max(year_list), value=max(year_list)))
 		# year_list = ['2020', '2021', '2022', '2023', '2024']
 		# selected_year = st.radio('Select year', year_list)
 		
@@ -113,7 +115,6 @@ def render_map(df_epoints, df_evs, ratio_cum, selected_year):
 	folium_static(map, width=800, height=800)
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-@st.cache_data
 def plot_barchart(df, title):
 	years = ['2020', '2021', '2022', '2023', '2024']
 	data = []
@@ -152,13 +153,9 @@ def main():
 	# Load the data
 	df_epoints, df_evs, df_epoints_cum, df_evs_cum, df_ratio_cum = load_datasets()
 
-	st.title("DASHBOARD")
-	st.header(":electric_plug: Bornes de recharge et Véhicules électriques en France :car:")
-
 	selected_year, selected_department = ft_sidebar(df_epoints_cum, df_evs_cum)
 
-	plot_barchart(df_epoints, 'Bornes de recharge par département, cumulatif :')
-	plot_barchart(df_evs, 'Véhicules électriques par département, cumulatif :')
+	st.title("DASHBOARD")
 
 	if selected_department != 'France entière':
 		df_epoints_cum = df_epoints_cum[df_epoints_cum['dept_code_name'] == selected_department]
@@ -173,7 +170,7 @@ def main():
 	mettric_col = st.columns(3)
 	with mettric_col[0]:
 		st.markdown("### VÉ par borne")
-		st.metric(label=selected_department, value='{:,}'.format(ratio_current), delta='{:}'.format(int(delta_ratio)), delta_color='inverse')
+		st.metric(label=selected_department, value='{:,}'.format(ratio_current), delta='{:,}'.format(int(delta_ratio)), delta_color='inverse')
 	with mettric_col[1]:
 		st.markdown(f"### Véhicules électriques")
 		st.metric(label=selected_department, value='{:,}'.format(evs_current), delta='{:,}'.format(int(delta_evs)))
@@ -182,6 +179,10 @@ def main():
 		st.metric(label=selected_department, value='{:,}'.format(epoints_current), delta='{:,}'.format(int(delta_epoints)))
 
 	render_map(df_epoints_cum, df_evs_cum, df_ratio_cum, selected_year)
+
+	st.header(":electric_plug: Bornes de recharge et Véhicules électriques en France :car:")
+	plot_barchart(df_epoints, 'Bornes de recharge par département, cumulatif :')
+	plot_barchart(df_evs, 'Véhicules électriques par département, cumulatif :')
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
