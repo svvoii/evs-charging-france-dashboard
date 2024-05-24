@@ -25,6 +25,7 @@ Run these commands in the root directory of this project before running the stre
 `python -m pip install streamlit` - to install streamlit  
 `python -m pip install streamlit-folium` - to install streamlit-folium which is a streamlit wrapper for folium to create interactive maps.  
 `python -m pip install unidecode` - to install unicode (used to deal with french specific characters in the data).  
+`python -m pip install plotly` - to install plotly (used to create interactive plots, barcharts).  
 
 `pip install --upgrade pip` - to upgrade pip  
 
