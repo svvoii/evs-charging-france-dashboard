@@ -8,7 +8,7 @@
 # 2. Isolate the columns needed for the preprocessing `select_columns()` (the goal to fill in the missing postal codes)
 # 3. Process the missing postal codes `process_missing_postal_codes()`:
 #	- Extract postal code from `adresse_station` string and store it in `postal_code`, new column `extract_postal_code_from_str()`
-#	- Fill in the missing postal codes from the `geo_ref` DataFrame based on the commune name `add_postal_code()`
+# 	- Fill in the postal code based on similar GPS coordinates in new `lat_lon` column `map_coordinates_to_postal_code()`
 #	- Some manual fixes (about 600 rows with around 150 unique locations) for the remaining missing postal codes `postal_code_manual_fixes()`
 # 4. Grouping the dataset by department in `adding_department()`
 #	- Fixing the postal codes for Corsica (20) to 2A and 2B`

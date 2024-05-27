@@ -1,6 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Description: This script preprocesses the vehicles dataset `data/vehicules.csv` 
-# The final dataset is saved as `evs_pivot.csv`
+# The final datasets are saved as `evs_pivot.csv` and `evs_pivot_cumsum.csv` in the `data` folder
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import pandas as pd
 import numpy as np
