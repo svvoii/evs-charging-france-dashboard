@@ -10,6 +10,7 @@ source .venv/bin/activate
 python3 -m pip install --upgrade pip
 # Install the necessary Python packages
 python3 -m pip install pandas
+python3 -m pip install plotly
 # python -m pip install python-dotenv
 python3 -m pip install tqdm
 python3 -m pip install streamlit
