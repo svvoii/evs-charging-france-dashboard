@@ -63,8 +63,8 @@ Run these commands in the root directory of this project before running the stre
 - `python -m pip install streamlit-folium` - to install streamlit-folium which is a streamlit wrapper for folium to create interactive maps.  
 - `python -m pip install plotly` - to install plotly (used to create interactive plots, barcharts).  
 - `python -m pip install unidecode` - to install unicode (used to deal with french specific characters in the data).  
-- `python -m pip install python-dotenv` - to install python-dotenv (for loading Google API key as an environment variable, NOT needed otherwise). Not necessary. Changed the to avoid the extraction of the data via Google API.    
-- `python -m pip install tqdm` - to install tqdm which is a progress bar library which is used in `exract_geocode.py`. Not necessary. Changed the to avoid the extraction of the data via Google API.      
+- `python -m pip install python-dotenv` - to install python-dotenv (for loading Google API key as an environment variable, NOT needed otherwise). This is NOT necessary since I have changed the logic to avoid the extraction of the data via Google API.    
+- `python -m pip install tqdm` - to install tqdm which is a progress bar library which is used in `exract_geocode.py`. This is NOT necessary since I have changed the logic to avoid the extraction of the data via Google API.      
 
 ##### To install all the packages at once, run the following script:  
 `chmod +x setup.sh` - to make the script executable  
@@ -83,8 +83,9 @@ After running the script, the extracted data will be saved in the `data` folder 
 
 `python extract_geocode.py` - command to extract the address data from Google API given the gps coordinates. There will be a progress bar to show the progress of the extraction (it took around 45 min to receive the data via Google API for arund 25000 gps locations).      
 (there ware 25154 unique values, which cost around 75EUR of free trial credit).  
+**NOTE**: You will need your own Google API key to make the request !!  
 
-Requested data was only for the missing values in `code_postal` wich are unique based on the `consolidated_longitude` and `consolidated_latitude` columns from the initial dataset for charging points (see above)  
+Requested data was only for the missing values in `code_postal` wich are unique based on the `consolidated_longitude` and `consolidated_latitude` columns from the initial dataset for charging points (see mentioned dataset above)  
 
 ### Preprocessing the Data (Charging Points and Electric Vehicles)
 
@@ -96,8 +97,7 @@ The electric vehicles dataset is well-structured, making it relatively easy to t
 The code for that is in the [vehicles_preprocess.py](vehicles_preprocess.py) file.  
 
 Specifically, I added columns for the year and department code, which were extracted from the same dataset.  
-The department name was cross-referenced from an additional dataset containing information like postal code and department on the communal level.  
-This dataset [fr-ref-geo.csv](data/fr-ref-geo.csv) was used to map the department code to its name.  
+The department name was cross-referenced from an additional dataset containing information like postal code and department on the communal level. This dataset: [fr-ref-geo.csv](data/fr-ref-geo.csv) was used to map the department code to its name.  
 The final step was transforming the dataframe into a pivot table where each row represents one department and each year is a separate column.  
 
 #### Charging Points Dataset:
@@ -114,15 +114,15 @@ Finally, the missing code for about 150 unique locations was added manually base
 After the column with postal codes was complete, the following step was to add a department based on the postal code.  
 
 Another issue was discovered due to the representation of the postal codes for the Corsica region.   Conversion from numerical format 20 to 2A, 2B was necessary to maintain data consistency with other datasets as well as GEOJSON data.  
-To solve this, I used another dataset with postal codes and other related info for the Corsica region. I mapped the postal code to the proper department code from the additional dataset.  
-This dataset [code-postal-corse.csv](data/code-postal-corse.csv) was used to map the postal code to the proper department code.  
+
+To solve this, I used another dataset with postal codes and other related info for the Corsica region. I mapped the postal code to the proper department code from the additional dataset. This dataset: [code-postal-corse.csv](data/code-postal-corse.csv) was used to map the postal code to the proper department code.  
 
 In a similar way, I mapped the department code to its name and filled it in a new column. 
 
 Also, since the project covers data with regards to mainland France, I dropped the rows where the department code was outside the range of 1 to 95 and 2A, 2B for Corsica.  
 After these manipulations, the dataframe was transformed into a pivot table which looks the same as the electric vehicles dataset.
 
-It took around 350 lines to preprocess the dataset with charging points.  
+It took around 350 lines to preprocess the dataset with charging points. The code is available here: [epoints_preprocess.py](epoints_preprocess.py).  
 
 Results of the preprocessing are saved in the `data` folder:  
 [epoints_pivot.csv](data/epoints_pivot.csv) - the pivot table for the charging points dataset  
@@ -132,7 +132,7 @@ Results of the preprocessing are saved in the `data` folder:
 
 ## Running the App
 
-Once the data is preprocessed, and necessaru datasets are available we can run the streamlit app with the following command :
+Once the data is preprocessed, and needed datasets are available, the following command can be run to launch the streamlit app locally :
 
 ```bash
 streamlit run map_dashboard.py
