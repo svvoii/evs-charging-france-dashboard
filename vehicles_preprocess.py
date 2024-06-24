@@ -14,7 +14,7 @@ def load_dataset():
 	return df
 
 # This will display the number of missing values in each column (missing in RED, no missing in GREEN)
-@st.cache_data
+# @st.cache_data
 def display_missing_values(charging_points):
 	st.write(f"DEBUG: Missing values in :")
 	for column in charging_points.columns:	
@@ -68,21 +68,24 @@ def main():
 	df_pivot_cumsum = df_pivot.loc[:, '2020':'2024'].cumsum(axis=1)
 	df_pivot_cumsum.to_csv('data/evs_pivot_cumsum.csv')
 
+	print('The final datasets `evs_pivot.csv` and `evs_pivot_cumsum.csv` have been saved in the `data` folder')
+
 	# DEBUG #
+	# TO RUN THE FOLLOWING CODE THE STREAMLIT APP NEEDS TO BE LAUNCHED FIRST
 	# st.write(evs_df.shape)
 	# st.write(evs_df)
 	# display_missing_values(df)
-	st.write(df.shape)
-	st.write(df)
+	# st.write(df.shape)
+	# st.write(df)
 
-	# filter_df = df.drop_duplicates(subset=['year'])
-	st.write(df_pivot.shape)
-	st.write(df_pivot)
-	st.write(f'The final dataset has been saved as `evs_pivot.csv` in the `data` folder')
+	# # filter_df = df.drop_duplicates(subset=['year'])
+	# st.write(df_pivot.shape)
+	# st.write(df_pivot)
+	# st.write(f'The final dataset has been saved as `evs_pivot.csv` in the `data` folder')
 
-	st.write(df_pivot_cumsum.shape)
-	st.write(df_pivot_cumsum)
-	st.write(f'The final dataset has been saved as `evs_pivot_cumsum.csv` in the `data` folder')
+	# st.write(df_pivot_cumsum.shape)
+	# st.write(df_pivot_cumsum)
+	# st.write(f'The final dataset has been saved as `evs_pivot_cumsum.csv` in the `data` folder')
 	# # # # #
 
 

@@ -52,8 +52,14 @@ More information about the departments in France can be found [here](https://www
 
 ## Setup
 
-### Preparing the Virtual Environment
+### **Preparing the Virtual Environment**
 
+### ***To install the venv and all the packages at once, run the following script*** :  
+`chmod +x setup.sh` - to make the script executable  
+`./setup.sh` - to run the script  
+
+
+### ***To install the venv and packages manually, follow the steps below*** :
 Run these commands in the root directory of this project before running the streamlit app:  
 1. `python -m venv .venv` - to create a virtual environment  
 2. `source .venv/bin/activate` - to activate the virtual environment  
@@ -65,10 +71,6 @@ Run these commands in the root directory of this project before running the stre
 - `python -m pip install unidecode` - to install unicode (used to deal with french specific characters in the data).  
 - `python -m pip install python-dotenv` - to install python-dotenv (for loading Google API key as an environment variable, NOT needed otherwise). This is NOT necessary since I have changed the logic to avoid the extraction of the data via Google API.    
 - `python -m pip install tqdm` - to install tqdm which is a progress bar library which is used in `exract_geocode.py`. This is NOT necessary since I have changed the logic to avoid the extraction of the data via Google API.      
-
-##### To install all the packages at once, run the following script:  
-`chmod +x setup.sh` - to make the script executable  
-`./setup.sh` - to run the script  
 
 ## Processing the Data
 
@@ -124,11 +126,16 @@ After these manipulations, the dataframe was transformed into a pivot table whic
 
 It took around 350 lines to preprocess the dataset with charging points. The code is available here: [epoints_preprocess.py](epoints_preprocess.py).  
 
-Results of the preprocessing are saved in the `data` folder:  
-[epoints_pivot.csv](data/epoints_pivot.csv) - the pivot table for the charging points dataset  
-[epoints_pivot_cumsum.csv](data/epoints_pivot_cumsum.csv) - the pivot table for the charging points dataset with cumulative sum  
-[evs_pivot.csv](data/evs_pivot.csv) - the pivot table for the electric vehicles dataset  
-[evs_pivot_cumsum.csv](data/evs_pivot_cumsum.csv) - the pivot table for the electric vehicles dataset with cumulative sum  
+Results of the preprocessing will be saved in the `data` folder after running the respective python code.:
+```bash
+python3 epoints_preprocess.py
+python3 vehicles_preprocess.py
+```
+The following files will be saved in the `data` folder:  
+`epoints_pivot.csv` - the pivot table for the charging points dataset  
+`epoints_pivot_cumsum.csv` - the pivot table for the charging points dataset with cumulative sum  
+`evs_pivot.csv` - the pivot table for the electric vehicles dataset  
+`evs_pivot_cumsum.csv` - the pivot table for the electric vehicles dataset with cumulative sum  
 
 ## Running the App
 

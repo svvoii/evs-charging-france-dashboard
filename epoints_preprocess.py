@@ -29,7 +29,7 @@ st.set_page_config(
 	layout="wide",
 )
 
-@st.cache_data
+# @st.cache_data
 def load_dataset():
 	epoints = pd.read_csv('data/charging_points.csv', dtype=str)
 	return epoints
@@ -201,7 +201,7 @@ def postal_code_manual_fixes(df):
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # This will display the number of missing values in each column (missing in RED, no missing in GREEN)
-@st.cache_data
+# @st.cache_data
 def display_missing_values(charging_points):
 	st.write(f"DEBUG: Missing values in :")
 	for column in charging_points.columns:	
@@ -313,8 +313,8 @@ def main():
 	## PREPROCESSING DATASET ##
 
 	# DEBUG #
-	missing_values = epoints[epoints['consolidated_code_postal'].isnull()]
-	st.write(f'Initislly missing values in `consolidated_code_postal` column: `{missing_values.shape[0]}` in dataset `epoints`')
+	# missing_values = epoints[epoints['consolidated_code_postal'].isnull()]
+	# st.write(f'Initislly missing values in `consolidated_code_postal` column: `{missing_values.shape[0]}` in dataset `epoints`')
 	# # # # #
 
 	df_epoints = process_missing_postal_codes(epoints)
@@ -331,15 +331,18 @@ def main():
 	pivot_df_cumsum = pivot_df.loc[:, '2021':'2024'].cumsum(axis=1)
 	pivot_df_cumsum.to_csv('data/epoints_pivot_cumsum.csv')
 
-	# # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-	# # DEBUG # #
-	st.write(f'Pivot table `pivot_df`, rows count: `{pivot_df.shape[0]}`')
-	st.write(pivot_df)
-	st.write(f'Pivot table saved to `data/epoints_pivot.csv`')
+	print('The final datasets have been saved to `data/epoints_pivot.csv` and `data/epoints_pivot_cumsum.csv`')
 
-	st.write(f'Pivot table `pivot_df_cumsum`, rows count: `{pivot_df_cumsum.shape[0]}`')
-	st.write(pivot_df_cumsum)
-	st.write(f'Pivot table saved to `data/epoints_pivot_cumsum.csv`')
+	# # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+	# TO RUN THE FOLLOWING CODE THE STREAMLIT APP NEEDS TO BE LAUNCHED FIRST
+	# # DEBUG # #
+	# st.write(f'Pivot table `pivot_df`, rows count: `{pivot_df.shape[0]}`')
+	# st.write(pivot_df)
+	# st.write(f'Pivot table saved to `data/epoints_pivot.csv`')
+
+	# st.write(f'Pivot table `pivot_df_cumsum`, rows count: `{pivot_df_cumsum.shape[0]}`')
+	# st.write(pivot_df_cumsum)
+	# st.write(f'Pivot table saved to `data/epoints_pivot_cumsum.csv`')
 
 	# st.write(f'Original Dataframe `epoints`, rows count: `{epoints.shape[0]}`')
 	# st.write(epoints.shape)
