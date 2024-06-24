@@ -1,12 +1,7 @@
 .venv/
 /data/*
-!/data/info.txt
-!/data/france_departments.geojson
-!/data/voitures.csv
-!/data/epoints_pivot.csv
-!/data/epoints_pivot_cumsum.csv
-!/data/evs_pivot.csv
-!/data/evs_pivot_cumsum.csv
-!/data/fr-ref-geo.csv
 !/data/code-postal-corse.csv
+!/data/fr-ref-geo.csv
+!/data/france_departments.geojson
+!/data/info.txt
 app_backup.py
