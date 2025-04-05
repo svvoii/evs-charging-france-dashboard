@@ -16,7 +16,7 @@ st.set_page_config(
 	initial_sidebar_state="expanded",
 )
 
-alt.themes.enable('dark')
+alt.theme.enable('dark')
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # Uploading datasets

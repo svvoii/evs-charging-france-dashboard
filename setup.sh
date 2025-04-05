@@ -12,7 +12,7 @@ python3 -m pip install --upgrade pip
 python3 -m pip install pandas
 python3 -m pip install plotly
 # python -m pip install python-dotenv
-python3 -m pip install tqdm
+# python3 -m pip install tqdm
 python3 -m pip install streamlit
 python3 -m pip install streamlit-folium
 python3 -m pip install unidecode

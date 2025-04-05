@@ -300,7 +300,7 @@ def transform_data(df):
 	# pivot_df.columns = ['_'.join(str(col)).strip('_') for col in pivot_df.columns.values]
 	# pivot_df.columns = ['dept_code', 'dept_name', '2021', '2022', '2023', '2024']
 	# pivot_df['total'] = pivot_df.iloc[:, 2:].sum(axis=1)
-	pivot_df['total'] = pivot_df[['2021', '2022', '2023', '2024']].sum(axis=1)
+	pivot_df['total'] = pivot_df[['2021', '2022', '2023', '2024', '2025']].sum(axis=1)
 	return pivot_df
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -328,7 +328,7 @@ def main():
 	pivot_df.to_csv('data/epoints_pivot.csv')
 
 	# Saving the cumulative sum of the pivot table as well
-	pivot_df_cumsum = pivot_df.loc[:, '2021':'2024'].cumsum(axis=1)
+	pivot_df_cumsum = pivot_df.loc[:, '2021':'2025'].cumsum(axis=1)
 	pivot_df_cumsum.to_csv('data/epoints_pivot_cumsum.csv')
 
 	print('The final datasets have been saved to `data/epoints_pivot.csv` and `data/epoints_pivot_cumsum.csv`')

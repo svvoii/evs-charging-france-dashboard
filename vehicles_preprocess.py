@@ -10,7 +10,15 @@ import streamlit as st
 # Load the dataset
 def load_dataset():
 	df = pd.read_csv('data/voitures.csv', sep=';', dtype=str)
-	df = df.rename(columns={'nb_vp_rechargeables_el': 'nb_evs'})	
+	df = df.rename(columns={
+        'CODGEO': 'codgeo',
+        'LIBGEO': 'libgeo',
+        'EPCI': 'epci',
+        'LIBEPCI': 'libepci',
+        'DATE_ARRETE': 'date_arrete',
+        'NB_VP_RECHARGEABLES_EL': 'nb_evs',
+        # 'nb_vp_rechargeables_el': 'nb_evs',
+    })	
 	return df
 
 # This will display the number of missing values in each column (missing in RED, no missing in GREEN)
@@ -50,7 +58,7 @@ def transform_to_pivot(df):
 	df['nb_evs'] = pd.to_numeric(df['nb_evs'], errors='coerce')
 	pivot_df = pd.pivot_table(df, index=['dept_code', 'dept_name'], columns='year', values='nb_evs', aggfunc='sum', fill_value=0)
 	# pivot_df['total'] = pivot_df.iloc[:, 2:].sum(axis=1)
-	pivot_df['total'] = pivot_df.loc[:, '2020':'2024'].sum(axis=1)
+	pivot_df['total'] = pivot_df.loc[:, '2020':'2025'].sum(axis=1)
 
 	return pivot_df
 
@@ -60,23 +68,23 @@ def main():
 	
 	df = adding_department(evs_df)
 
-	df_pivot = transform_to_pivot(df)
+	# df_pivot = transform_to_pivot(df)
 
-	df_pivot.to_csv('data/evs_pivot.csv')
+	# df_pivot.to_csv('data/evs_pivot.csv')
 
 	# Saving the cumulative sum of the number of EVs as well
-	df_pivot_cumsum = df_pivot.loc[:, '2020':'2024'].cumsum(axis=1)
-	df_pivot_cumsum.to_csv('data/evs_pivot_cumsum.csv')
+	# df_pivot_cumsum = df_pivot.loc[:, '2020':'2025'].cumsum(axis=1)
+	# df_pivot_cumsum.to_csv('data/evs_pivot_cumsum.csv')
 
-	print('The final datasets `evs_pivot.csv` and `evs_pivot_cumsum.csv` have been saved in the `data` folder')
+	# print('The final datasets `evs_pivot.csv` and `evs_pivot_cumsum.csv` have been saved in the `data` folder')
 
 	# DEBUG #
 	# TO RUN THE FOLLOWING CODE THE STREAMLIT APP NEEDS TO BE LAUNCHED FIRST
-	# st.write(evs_df.shape)
-	# st.write(evs_df)
-	# display_missing_values(df)
-	# st.write(df.shape)
-	# st.write(df)
+	st.write(evs_df.shape)
+	st.write(evs_df)
+	display_missing_values(df)
+	st.write(df.shape)
+	st.write(df)
 
 	# # filter_df = df.drop_duplicates(subset=['year'])
 	# st.write(df_pivot.shape)
